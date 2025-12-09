@@ -1,3 +1,4 @@
 .minecraft
 logs
 .venv
+__pycache__
