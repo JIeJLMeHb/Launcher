@@ -8,18 +8,27 @@ import minecraft_launcher_lib as mclib
 import subprocess
 import threading
 import tempfile
-from utils import setup_dark_theme, InsecureSession
+from utils import InsecureSession
 from tabs import MainTab, ModsTab, ModpacksTab
 from version_manager import VersionManager
 
 class MinecraftLauncher:
     def __init__(self, root):
+
+        window_width = 720
+        window_height = 1000
+        """Центрирует окно на экране."""
+        screen_width = 1920
+        screen_height = 1080
+
+        x = (screen_width // 2) - (window_width // 2)
+        y = (screen_height // 2) - (window_height // 2)
+
         self.root = root
         self.root.title("Minecraft Launcher")
-        self.root.geometry("680x720")
+        self.root.geometry(f'{window_width}x{window_height}+{x}+{y}')
         self.root.configure(bg='#2b2b2b')
-        
-        setup_dark_theme()
+        self.root.resizable(False, False)
         
         self.MINECRAFT_DIR = ".minecraft"
         self.MODPACKS_DIR = os.path.join(self.MINECRAFT_DIR, "modpacks")
@@ -36,17 +45,7 @@ class MinecraftLauncher:
         self.refresh_modpacks_list()
     
     def setup_notebook(self):
-        style = ttk.Style()
-        style.configure('Custom.TNotebook', background='#2b2b2b', borderwidth=0)
-        style.configure('Custom.TNotebook.Tab', 
-                    background='#3c3c3c', 
-                    foreground='white',
-                    padding=[10, 5])
-        style.map('Custom.TNotebook.Tab', 
-                background=[('selected', '#4a4a4a')],
-                foreground=[('selected', 'white')])
-        
-        self.notebook = ttk.Notebook(self.root, style='Custom.TNotebook')
+        self.notebook = ttk.Notebook(self.root)
         self.notebook.pack(fill="both", expand=True, padx=10, pady=10)
         
         self.main_tab = MainTab(self.notebook, self)

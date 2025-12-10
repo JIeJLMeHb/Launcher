@@ -5,6 +5,8 @@ import shutil
 import json
 from datetime import datetime
 from utils import InsecureSession
+import ttkbootstrap as ttkb
+from ttkbootstrap.constants import *
 
 class BaseTab:
     def __init__(self, parent, launcher):
@@ -35,11 +37,10 @@ class MainTab(BaseTab):
         canvas.pack(side="left", fill="both", expand=True)
         scrollbar.pack(side="right", fill="y")
         
-        warning_label = tk.Label(self.scrollable_frame, 
-                               text="ВНИМАНИЕ: SSL проверка отключена!", 
-                               fg="#ff6b6b", 
-                               bg='#2b2b2b',
-                               font=("Segoe UI", 10, "bold"))
+        warning_label = ttk.Label(self.scrollable_frame, 
+                       text="ВНИМАНИЕ: SSL проверка отключена!", 
+                       bootstyle="danger",
+                       font=("Segoe UI", 10, "bold"))
         warning_label.pack(pady=10, padx=20)
         
         self.setup_version_block()
@@ -155,16 +156,11 @@ class MainTab(BaseTab):
         self.launcher.modpack_selector.bind("<<ComboboxSelected>>", 
                                           self.launcher.on_modpack_selected_in_main_tab)
         
-        self.quick_launch_button = tk.Button(modpack_frame,
+        self.quick_launch_button = ttk.Button(modpack_frame,
                                         text="🚀 Быстрый запуск",
                                         command=self.launcher.quick_launch_modpack,
-                                        bg='#e67e22',
-                                        fg='white',
-                                        font=("Segoe UI", 9, "bold"),
-                                        relief="flat",
-                                        padx=15,
-                                        pady=5,
-                                        cursor="hand2")
+                                        bootstyle="warning",
+                                        padding=(15, 5))
         self.quick_launch_button.pack(side="left", padx=5)
         
         refresh_selector_button = ttk.Button(modpack_frame,
@@ -182,28 +178,18 @@ class MainTab(BaseTab):
         control_block = ttk.Frame(self.scrollable_frame)
         control_block.pack(fill="x", padx=20, pady=10)
         
-        self.install_button = tk.Button(control_block, 
-                                      text="Установить", 
-                                      command=self.launcher.version_manager.install_version,
-                                      bg='#4a76b8',
-                                      fg='white',
-                                      font=("Segoe UI", 10, "bold"),
-                                      relief="flat",
-                                      padx=20,
-                                      pady=10,
-                                      cursor="hand2")
+        self.install_button = ttk.Button(control_block,
+                                    text="Установить",
+                                    command=self.launcher.version_manager.install_version,
+                                    bootstyle="primary",
+                                    padding=(20, 10))
         self.install_button.pack(side="left", padx=(0, 10))
         
-        self.launch_button = tk.Button(control_block, 
-                                     text="🚀 Запуск Minecraft", 
-                                     command=self.launcher.version_manager.launch_minecraft,
-                                     bg='#27ae60',
-                                     fg='white',
-                                     font=("Segoe UI", 10, "bold"),
-                                      relief="flat",
-                                      padx=20,
-                                      pady=10,
-                                      cursor="hand2")
+        self.launch_button = ttk.Button(control_block,
+                             text="🚀 Запуск Minecraft",
+                             command=self.launcher.version_manager.launch_minecraft,
+                             bootstyle="success",
+                             padding=(20, 10))
         self.launch_button.pack(side="left")
     
     def setup_log_block(self):
@@ -356,54 +342,39 @@ class ModsTab(BaseTab):
         button_frame = ttk.Frame(parent)
         button_frame.pack()
         
-        self.add_mod_button = tk.Button(button_frame, 
-                                    text="📁 Добавить из файла", 
-                                    command=self.add_mod_from_file,
-                                    bg='#4a76b8',
-                                    fg='white',
-                                    relief="flat",
-                                    padx=15,
-                                    pady=5)
+        self.add_mod_button = ttk.Button(button_frame,
+                            text="📁 Добавить из файла",
+                            command=self.add_mod_from_file,
+                            bootstyle="primary",
+                            padding=(15, 5))
         self.add_mod_button.pack(side="left", padx=5)
         
-        self.add_mod_url_button = tk.Button(button_frame, 
-                                        text="🔗 Добавить по ссылке", 
-                                        command=self.add_mod_from_url,
-                                        bg='#4a76b8',
-                                        fg='white',
-                                        relief="flat",
-                                        padx=15,
-                                        pady=5)
+        self.add_mod_url_button = ttk.Button(button_frame,
+                                text="🔗 Добавить по ссылке",
+                                command=self.add_mod_from_url,
+                                bootstyle="primary",
+                                padding=(15, 5))
         self.add_mod_url_button.pack(side="left", padx=5)
         
-        self.remove_mod_button = tk.Button(button_frame, 
-                                        text="🗑️ Удалить выбранный", 
-                                        command=self.remove_selected_mod,
-                                        bg='#e74c3c',
-                                        fg='white',
-                                        relief="flat",
-                                        padx=15,
-                                        pady=5)
+        self.remove_mod_button = ttk.Button(button_frame,
+                                text="🗑️ Удалить выбранный",
+                                command=self.remove_selected_mod,
+                                bootstyle="danger",
+                                padding=(15, 5))
         self.remove_mod_button.pack(side="left", padx=5)
         
-        self.clear_mods_button = tk.Button(button_frame, 
-                                        text="🧹 Очистить все", 
-                                        command=self.clear_all_mods,
-                                        bg='#e74c3c',
-                                        fg='white',
-                                        relief="flat",
-                                        padx=15,
-                                        pady=5)
+        self.clear_mods_button = ttk.Button(button_frame,
+                                text="🧹 Очистить все",
+                                command=self.clear_all_mods,
+                                bootstyle="danger",
+                                padding=(15, 5))
         self.clear_mods_button.pack(side="left", padx=5)
         
-        self.refresh_mods_button = tk.Button(button_frame, 
-                                        text="🔄 Обновить", 
-                                        command=self.refresh_mods_list,
-                                        bg='#3498db',
-                                        fg='white',
-                                        relief="flat",
-                                        padx=15,
-                                        pady=5)
+        self.refresh_mods_button = ttk.Button(button_frame,
+                                text="🔄 Обновить",
+                                command=self.refresh_mods_list,
+                                bootstyle="info",
+                                padding=(15, 5))
         self.refresh_mods_button.pack(side="left", padx=5)
         
         self.current_modpack_label = ttk.Label(parent, 
@@ -720,44 +691,32 @@ class ModpacksTab(BaseTab):
         button_frame = ttk.Frame(parent)
         button_frame.pack()
         
-        self.create_modpack_button = tk.Button(button_frame,
-                                            text="➕ Создать модпак",
-                                            command=self.launcher.create_modpack_dialog,
-                                            bg='#27ae60',
-                                            fg='white',
-                                            relief="flat",
-                                            padx=15,
-                                            pady=5)
+        self.create_modpack_button = ttk.Button(button_frame,
+                                    text="➕ Создать модпак",
+                                    command=self.launcher.create_modpack_dialog,
+                                    bootstyle="success",
+                                    padding=(15, 5))
         self.create_modpack_button.pack(side="left", padx=5)
         
-        self.delete_modpack_button = tk.Button(button_frame,
-                                            text="🗑️ Удалить модпак",
-                                            command=self.delete_modpack,
-                                            bg='#e74c3c',
-                                            fg='white',
-                                            relief="flat",
-                                            padx=15,
-                                            pady=5)
+        self.delete_modpack_button = ttk.Button(button_frame,
+                                    text="🗑️ Удалить модпак",
+                                    command=self.delete_modpack,
+                                    bootstyle="danger",
+                                    padding=(15, 5))
         self.delete_modpack_button.pack(side="left", padx=5)
         
-        self.export_modpack_button = tk.Button(button_frame,
-                                            text="📤 Экспорт модпака",
-                                            command=self.launcher.export_modpack,
-                                            bg='#3498db',
-                                            fg='white',
-                                            relief="flat",
-                                            padx=15,
-                                            pady=5)
+        self.export_modpack_button = ttk.Button(button_frame,
+                                    text="📤 Экспорт модпака",
+                                    command=self.launcher.export_modpack,
+                                    bootstyle="info",
+                                    padding=(15, 5))
         self.export_modpack_button.pack(side="left", padx=5)
         
-        self.refresh_modpacks_button = tk.Button(button_frame,
-                                            text="🔄 Обновить",
-                                            command=self.launcher.refresh_modpacks_list,
-                                            bg='#3498db',
-                                            fg='white',
-                                            relief="flat",
-                                            padx=15,
-                                            pady=5)
+        self.refresh_modpacks_button = ttk.Button(button_frame,
+                                    text="🔄 Обновить",
+                                    command=self.launcher.refresh_modpacks_list,
+                                    bootstyle="info",
+                                    padding=(15, 5))
         self.refresh_modpacks_button.pack(side="left", padx=5)
     
     def setup_modpacks_tree(self, parent):
@@ -783,14 +742,7 @@ class ModpacksTab(BaseTab):
         scrollbar.pack(side="right", fill="y")
     
     def setup_modpack_info_text(self, parent):
-        self.modpack_info_text = tk.Text(parent,
-                                    height=10,
-                                    wrap="word",
-                                    bg='#3c3c3c',
-                                    fg='#ffffff',
-                                    insertbackground='white',
-                                    font=("Segoe UI", 9),
-                                    width=40)
+        self.modpack_info_text = tk.Text(parent)
         modpack_info_scrollbar = ttk.Scrollbar(parent, command=self.modpack_info_text.yview)
         self.modpack_info_text.config(yscrollcommand=modpack_info_scrollbar.set)
         
@@ -802,7 +754,6 @@ class ModpacksTab(BaseTab):
             dialog = tk.Toplevel(self.launcher.root)
             dialog.title("Создание нового модпака")
             dialog.geometry("400x400")
-            dialog.configure(bg='#2b2b2b')
             dialog.transient(self.launcher.root)
             dialog.grab_set()
             
@@ -812,10 +763,7 @@ class ModpacksTab(BaseTab):
             dialog.geometry(f"+{x}+{y}")
             
             tk.Label(dialog, 
-                    text="Создание нового модпака", 
-                    bg='#2b2b2b', 
-                    fg='white',
-                    font=("Segoe UI", 12, "bold")).pack(pady=10)
+                    text="Создание нового модпака")
             
             name_frame = ttk.Frame(dialog)
             name_frame.pack(fill="x", padx=30, pady=10)
