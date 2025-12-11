@@ -11,12 +11,13 @@ import tempfile
 from utils import InsecureSession
 from tabs import MainTab, ModsTab, ModpacksTab
 from version_manager import VersionManager
+from PIL import Image, ImageTk
 
 class MinecraftLauncher:
     def __init__(self, root):
 
-        window_width = 720
-        window_height = 1000
+        window_width = 800
+        window_height = 560
         """Центрирует окно на экране."""
         screen_width = 1920
         screen_height = 1080
@@ -29,7 +30,12 @@ class MinecraftLauncher:
         self.root.geometry(f'{window_width}x{window_height}+{x}+{y}')
         self.root.configure(bg='#2b2b2b')
         self.root.resizable(False, False)
-        
+
+        image_path = os.path.join(os.path.dirname(__file__), 'logo.jpg')
+
+        icon_image_pil = Image.open(image_path)
+        icon_photo = ImageTk.PhotoImage(icon_image_pil)
+        self.root.iconphoto(False, icon_photo)
         self.MINECRAFT_DIR = ".minecraft"
         self.MODPACKS_DIR = os.path.join(self.MINECRAFT_DIR, "modpacks")
         self.MODS_CACHE_DIR = os.path.join(self.MINECRAFT_DIR, "mods_cache")

@@ -37,34 +37,62 @@ class MainTab(BaseTab):
         canvas.pack(side="left", fill="both", expand=True)
         scrollbar.pack(side="right", fill="y")
         
-        warning_label = ttk.Label(self.scrollable_frame, 
-                       text="ВНИМАНИЕ: SSL проверка отключена!", 
-                       bootstyle="danger",
-                       font=("Segoe UI", 10, "bold"))
-        warning_label.pack(pady=10, padx=20)
+        # Создаем основной контейнер для компактной сетки
+        grid_container = ttk.Frame(self.scrollable_frame)
+        grid_container.pack(fill="x", padx=20, pady=5)
         
-        self.setup_version_block()
-        self.setup_account_block()
-        self.setup_progress_block()
-        self.setup_modpack_block()
-        self.setup_control_block()
-        self.setup_log_block()
+        # Первая строка: Выбор версии | Быстрый запуск модпака
+        row1 = ttk.Frame(grid_container)
+        row1.pack(fill="x", pady=(0, 10))
+        
+        # Левый столбец: Выбор версии
+        left_col = ttk.LabelFrame(row1, text="Выбор версии", padding=10)
+        left_col.pack(side="left", fill="both", expand=True, padx=(0, 10))
+        
+        self.setup_version_block_compact(left_col)
+        
+        # Правый столбец: Быстрый запуск модпака
+        right_col = ttk.LabelFrame(row1, text="Быстрый запуск модпака", padding=10)
+        right_col.pack(side="right", fill="both", expand=True, padx=(10, 0))
+        
+        self.setup_modpack_block_compact(right_col)
+        
+        # Вторая строка: Данные аккаунта | Кнопки управления
+        row2 = ttk.Frame(grid_container)
+        row2.pack(fill="x", pady=(0, 10))
+        
+        # Левый столбец: Данные аккаунта
+        left_col2 = ttk.LabelFrame(row2, text="Данные аккаунта", padding=10)
+        left_col2.pack(side="left", fill="both", expand=True, padx=(0, 10))
+        
+        self.setup_account_block_compact(left_col2)
+        
+        # Правый столбец: Кнопки управления
+        right_col2 = ttk.LabelFrame(row2, text="Управление", padding=10)
+        right_col2.pack(side="right", fill="both", expand=True, padx=(10, 0))
+        
+        self.setup_control_block_compact(right_col2)
+        
+        # Третья строка: Логи установки (на всю ширину)
+        row3 = ttk.Frame(grid_container)
+        row3.pack(fill="both", expand=True, pady=(0, 10))
+        
+        self.setup_log_block_compact(row3)
+        
+        # Строка статуса
         self.setup_status_bar()
     
-    def setup_version_block(self):
-        version_block = ttk.LabelFrame(self.scrollable_frame, text="Выбор версии", padding=15)
-        version_block.pack(fill="x", padx=20, pady=10)
+    def setup_version_block_compact(self, parent):
+        version_frame = ttk.Frame(parent)
+        version_frame.pack(fill="x", pady=(0, 5))
         
-        version_frame = ttk.Frame(version_block)
-        version_frame.pack(fill="x", pady=5)
-        
-        ttk.Label(version_frame, text="Версия Minecraft:").pack(side="left", padx=(0, 10))
+        ttk.Label(version_frame, text="Minecraft:").pack(side="left", padx=(0, 5))
         self.version_var = tk.StringVar()
         self.version_combobox = ttk.Combobox(version_frame, 
                                            textvariable=self.version_var, 
                                            state="readonly", 
-                                           width=30)
-        self.version_combobox.pack(side="left", fill="x", expand=True, padx=(0, 10))
+                                           width=20)  # Уменьшена ширина
+        self.version_combobox.pack(side="left", fill="x", expand=True, padx=(0, 5))
         self.version_combobox.bind("<<ComboboxSelected>>", self.on_minecraft_version_changed)
         
         self.refresh_button = ttk.Button(version_frame, 
@@ -73,48 +101,45 @@ class MainTab(BaseTab):
                                        command=self.launcher.version_manager.refresh_versions)
         self.refresh_button.pack(side="left")
         
-        modloader_frame = ttk.Frame(version_block)
+        modloader_frame = ttk.Frame(parent)
         modloader_frame.pack(fill="x", pady=5)
         
-        ttk.Label(modloader_frame, text="Модлоадер:").pack(side="left", padx=(0, 10))
+        ttk.Label(modloader_frame, text="Модлоадер:").pack(side="left", padx=(0, 5))
         self.modloader_var = tk.StringVar(value="Vanilla")
         self.modloader_combobox = ttk.Combobox(modloader_frame, 
                                               textvariable=self.modloader_var,
                                               values=["Vanilla", "Forge", "NeoForge", "Fabric", "Quilt"],
                                               state="readonly", 
-                                              width=15)
-        self.modloader_combobox.pack(side="left", padx=(0, 10))
+                                              width=12)  # Уменьшена ширина
+        self.modloader_combobox.pack(side="left", padx=(0, 5))
         self.modloader_combobox.bind("<<ComboboxSelected>>", self.on_modloader_changed)
         
-        ttk.Label(modloader_frame, text="Версия:").pack(side="left", padx=(0, 10))
+        ttk.Label(modloader_frame, text="Версия:").pack(side="left", padx=(0, 5))
         self.modloader_version_var = tk.StringVar()
         self.modloader_version_combobox = ttk.Combobox(modloader_frame, 
                                                       textvariable=self.modloader_version_var,
                                                       state="disabled", 
-                                                      width=20)
+                                                      width=15)  # Уменьшена ширина
         self.modloader_version_combobox.pack(side="left", fill="x", expand=True)
     
-    def setup_account_block(self):
-        account_block = ttk.LabelFrame(self.scrollable_frame, text="Данные аккаунта", padding=15)
-        account_block.pack(fill="x", padx=20, pady=10)
-        
-        username_frame = ttk.Frame(account_block)
-        username_frame.pack(fill="x", pady=5)
-        ttk.Label(username_frame, text="Имя пользователя:").pack(side="left", padx=(0, 10))
-        self.username_entry = ttk.Entry(username_frame, width=30)
+    def setup_account_block_compact(self, parent):
+        username_frame = ttk.Frame(parent)
+        username_frame.pack(fill="x", pady=2)
+        ttk.Label(username_frame, text="Имя:").pack(side="left", padx=(0, 5))
+        self.username_entry = ttk.Entry(username_frame, width=20)  # Уменьшена ширина
         self.username_entry.insert(0, "Player")
         self.username_entry.pack(side="left", fill="x", expand=True)
         
-        uuid_frame = ttk.Frame(account_block)
-        uuid_frame.pack(fill="x", pady=5)
-        ttk.Label(uuid_frame, text="UUID (опционально):").pack(side="left", padx=(0, 10))
-        self.uuid_entry = ttk.Entry(uuid_frame, width=40)
+        uuid_frame = ttk.Frame(parent)
+        uuid_frame.pack(fill="x", pady=2)
+        ttk.Label(uuid_frame, text="UUID:").pack(side="left", padx=(0, 5))
+        self.uuid_entry = ttk.Entry(uuid_frame, width=25)  # Уменьшена ширина
         self.uuid_entry.pack(side="left", fill="x", expand=True)
         
-        token_frame = ttk.Frame(account_block)
-        token_frame.pack(fill="x", pady=5)
-        ttk.Label(token_frame, text="Token (опционально):").pack(side="left", padx=(0, 10))
-        self.token_entry = ttk.Entry(token_frame, width=40, show="*")
+        token_frame = ttk.Frame(parent)
+        token_frame.pack(fill="x", pady=2)
+        ttk.Label(token_frame, text="Token:").pack(side="left", padx=(0, 5))
+        self.token_entry = ttk.Entry(token_frame, width=25, show="*")  # Уменьшена ширина
         self.token_entry.pack(side="left", fill="x", expand=True)
         
         self.show_token_var = tk.BooleanVar()
@@ -122,46 +147,29 @@ class MainTab(BaseTab):
                                               text="Показать", 
                                               variable=self.show_token_var,
                                               command=self.toggle_token_visibility)
-        self.show_token_check.pack(side="left", padx=(10, 0))
+        self.show_token_check.pack(side="left", padx=(5, 0))
     
-    def setup_progress_block(self):
-        progress_block = ttk.LabelFrame(self.scrollable_frame, text="Прогресс установки", padding=15)
-        progress_block.pack(fill="x", padx=20, pady=10)
-        
-        self.progress_var = tk.DoubleVar()
-        self.progress = ttk.Progressbar(progress_block, 
-                                      mode='determinate',
-                                      variable=self.progress_var,
-                                      length=100)
-        self.progress.pack(fill="x", pady=5)
-        
-        self.progress_label = ttk.Label(progress_block, text="Готов к установке")
-        self.progress_label.pack()
-    
-    def setup_modpack_block(self):
-        modpack_block = ttk.LabelFrame(self.scrollable_frame, text="Быстрый запуск модпака", padding=15)
-        modpack_block.pack(fill="x", padx=20, pady=10)
-        
-        modpack_frame = ttk.Frame(modpack_block)
+    def setup_modpack_block_compact(self, parent):
+        modpack_frame = ttk.Frame(parent)
         modpack_frame.pack(fill="x", pady=5)
         
-        ttk.Label(modpack_frame, text="Выберите модпак:").pack(side="left", padx=(0, 10))
+        ttk.Label(modpack_frame, text="Модпак:").pack(side="left", padx=(0, 5))
         
         self.launcher.modpack_selector_var = tk.StringVar()
         self.launcher.modpack_selector = ttk.Combobox(modpack_frame, 
                                         textvariable=self.launcher.modpack_selector_var,
                                         state="readonly", 
-                                        width=25)
-        self.launcher.modpack_selector.pack(side="left", padx=(0, 10))
+                                        width=18)  # Уменьшена ширина
+        self.launcher.modpack_selector.pack(side="left", padx=(0, 5), fill="x", expand=True)
         self.launcher.modpack_selector.bind("<<ComboboxSelected>>", 
                                           self.launcher.on_modpack_selected_in_main_tab)
         
         self.quick_launch_button = ttk.Button(modpack_frame,
-                                        text="🚀 Быстрый запуск",
+                                        text="🚀 Запуск",
                                         command=self.launcher.quick_launch_modpack,
                                         bootstyle="warning",
-                                        padding=(15, 5))
-        self.quick_launch_button.pack(side="left", padx=5)
+                                        padding=(10, 3))  # Уменьшен padding
+        self.quick_launch_button.pack(side="left", padx=2)
         
         refresh_selector_button = ttk.Button(modpack_frame,
                                         text="🔄",
@@ -169,40 +177,40 @@ class MainTab(BaseTab):
                                         command=self.launcher.refresh_modpack_selector)
         refresh_selector_button.pack(side="left")
         
-        self.launcher.modpack_info_label = ttk.Label(modpack_block, 
+        self.launcher.modpack_info_label = ttk.Label(parent, 
                                         text="Модпак не выбран",
-                                        font=("Segoe UI", 9))
+                                        font=("Segoe UI", 8))  # Уменьшен шрифт
         self.launcher.modpack_info_label.pack(anchor="w", pady=(5, 0))
     
-    def setup_control_block(self):
-        control_block = ttk.Frame(self.scrollable_frame)
-        control_block.pack(fill="x", padx=20, pady=10)
+    def setup_control_block_compact(self, parent):
+        button_frame = ttk.Frame(parent)
+        button_frame.pack(expand=True, pady=10)
         
-        self.install_button = ttk.Button(control_block,
+        self.install_button = ttk.Button(button_frame,
                                     text="Установить",
                                     command=self.launcher.version_manager.install_version,
                                     bootstyle="primary",
-                                    padding=(20, 10))
-        self.install_button.pack(side="left", padx=(0, 10))
+                                    padding=(15, 8))  # Уменьшен padding
+        self.install_button.pack(pady=5, fill="x")
         
-        self.launch_button = ttk.Button(control_block,
-                             text="🚀 Запуск Minecraft",
+        self.launch_button = ttk.Button(button_frame,
+                             text="🚀 Запуск",
                              command=self.launcher.version_manager.launch_minecraft,
                              bootstyle="success",
-                             padding=(20, 10))
-        self.launch_button.pack(side="left")
+                             padding=(15, 8))  # Уменьшен padding
+        self.launch_button.pack(pady=5, fill="x")
     
-    def setup_log_block(self):
-        log_block = ttk.LabelFrame(self.scrollable_frame, text="Логи установки", padding=10)
-        log_block.pack(fill="both", expand=True, padx=20, pady=10)
+    def setup_log_block_compact(self, parent):
+        log_block = ttk.LabelFrame(parent, text="Логи установки", padding=8)
+        log_block.pack(fill="both", expand=True)
         
         self.log_text = tk.Text(log_block, 
-                              height=12,
+                              height=10,  # Уменьшена высота
                               bg='#3c3c3c',
                               fg='#ffffff',
                               insertbackground='white',
                               wrap="word",
-                              font=("Consolas", 9))
+                              font=("Consolas", 8))  # Уменьшен шрифт
         
         scrollbar = ttk.Scrollbar(log_block, command=self.log_text.yview)
         self.log_text.config(yscrollcommand=scrollbar.set)
@@ -219,9 +227,10 @@ class MainTab(BaseTab):
                              textvariable=self.status_var, 
                              relief="sunken", 
                              anchor="w",
-                             padding=5,
+                             padding=3,  # Уменьшен padding
                              background='#3c3c3c',
-                             foreground='#ffffff')
+                             foreground='#ffffff',
+                             font=("Segoe UI", 8))  # Уменьшен шрифт
         status_bar.pack(fill="x")
     
     def toggle_token_visibility(self):
