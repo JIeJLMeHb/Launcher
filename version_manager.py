@@ -135,7 +135,6 @@ class VersionManager:
             
             callback = {
                 'setStatus': lambda text: self.launcher.root.after(0, self.launcher.main_tab.set_status, text),
-                'setProgress': lambda value: self.launcher.root.after(0, self.launcher.main_tab.update_progress, value),
                 'setMax': lambda max_value: None
             }
             
@@ -149,13 +148,11 @@ class VersionManager:
                 self.install_modloader(minecraft_version, modloader, modloader_version, callback)
             
             self.launcher.main_tab.set_status(f"Установка завершена")
-            self.launcher.main_tab.update_progress(0)
             
         except Exception as e:
             self.launcher.main_tab.log(f"Ошибка при установке: {str(e)}")
             self.launcher.main_tab.set_status("Ошибка установки")
         finally:
-            self.launcher.main_tab.update_progress(0)
             if self.launcher.root.winfo_exists():
                 self.launcher.root.after(0, lambda: self.launcher.main_tab.install_button.config(state="normal"))
                 self.launcher.root.after(0, lambda: self.launcher.main_tab.launch_button.config(state="normal"))
@@ -264,9 +261,6 @@ class VersionManager:
                     if chunk:
                         f.write(chunk)
                         downloaded += len(chunk)
-                        if total_size > 0:
-                            progress = (downloaded / total_size) * 100
-                            callback['setProgress'](progress)
             
             self.launcher.main_tab.log(f"Forge installer скачан: {installer_path}")
             
@@ -469,7 +463,7 @@ class VersionManager:
                 "username": username,
                 "uuid": uuid if uuid else "",
                 "token": token if token else "",
-                "jvmArguments": ["-Xmx4G", "-Xms2G", "-XX:+UseG1GC", "-XX:+UnlockExperimentalVMOptions", "-XX:G1NewSizePercent=20", "-XX:G1ReservePercent=20", "-XX:MaxGCPauseMillis=50", "-XX:G1HeapRegionSize=32M"]
+                "jvmArguments": ["-Xmx16G", "-Xms2G", "-XX:+UseG1GC", "-XX:+UnlockExperimentalVMOptions", "-XX:G1NewSizePercent=20", "-XX:G1ReservePercent=20", "-XX:MaxGCPauseMillis=50", "-XX:G1HeapRegionSize=32M"]
             }
             
             if self.launcher.current_modpack:
@@ -573,7 +567,6 @@ class VersionManager:
             
             callback = {
                 'setStatus': lambda text: self.launcher.root.after(0, self.launcher.main_tab.set_status, text),
-                'setProgress': lambda value: self.launcher.root.after(0, self.launcher.main_tab.update_progress, value),
                 'setMax': lambda max_value: None
             }
             

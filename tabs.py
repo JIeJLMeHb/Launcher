@@ -249,17 +249,6 @@ class MainTab(BaseTab):
         self.status_var.set(message)
         self.launcher.root.update_idletasks()
     
-    def update_progress(self, value, max_value=None):
-        if max_value is not None and max_value > 0:
-            progress_percent = (value / max_value)
-            self.progress_var.set(progress_percent)
-            self.progress_label.config(text=f"Прогресс: {progress_percent:.1f}%")
-        else:
-            self.progress_var.set(value)
-            self.progress_label.config(text=f"Прогресс: {value:.1f}%")
-        
-        self.launcher.root.update_idletasks()
-    
     def on_minecraft_version_changed(self, event=None):
         selected_version = self.version_var.get()
         modloader = self.modloader_var.get()
@@ -550,9 +539,6 @@ class ModsTab(BaseTab):
                             if chunk:
                                 f.write(chunk)
                                 downloaded += len(chunk)
-                                if total_size > 0:
-                                    progress = (downloaded / total_size) * 100
-                                    self.launcher.root.after(0, self.launcher.main_tab.update_progress, progress)
                     
                     self.launcher.main_tab.log(f"Мод {filename} успешно загружен")
                     self.refresh_mods_list()
