@@ -301,59 +301,25 @@ class VersionManager:
     
     def install_forge_direct_download(self, minecraft_version, forge_version, callback):
         try:
-            self.launcher.main_tab.set_status("Прямая загрузка файлов Forge...")
-            
-            base_url = f"https://files.minecraftforge.net/maven/net/minecraftforge/forge/{forge_version}"
-            files_to_download = [
-                f"forge-{forge_version}-client.jar",
-                f"forge-{forge_version}-universal.jar"
-            ]
-            
-            for filename in files_to_download:
-                file_url = f"{base_url}/{filename}"
-                dest_dir = os.path.join(self.launcher.MINECRAFT_DIR, "libraries", "net", "minecraftforge", "forge", forge_version)
-                os.makedirs(dest_dir, exist_ok=True)
-                dest_path = os.path.join(dest_dir, filename)
-                
-                self.launcher.main_tab.log(f"Скачивание {filename}...")
-                
-                session = InsecureSession()
-                response = session.get(file_url, stream=True, timeout=30)
-                
-                if response.status_code == 200:
-                    with open(dest_path, 'wb') as f:
-                        for chunk in response.iter_content(chunk_size=8192):
-                            if chunk:
-                                f.write(chunk)
-                    
-                    self.launcher.main_tab.log(f"Файл {filename} скачан успешно")
-                else:
-                    self.launcher.main_tab.log(f"Не удалось скачать {filename}, код: {response.status_code}")
-            
-            client_libs_url = f"https://libraries.minecraft.net/net/minecraft/client/{minecraft_version}-20230612.114412/client-{minecraft_version}-20230612.114412-srg.jar"
-            client_libs_dest = os.path.join(self.launcher.MINECRAFT_DIR, "libraries", "net", "minecraft", "client", f"{minecraft_version}-20230612.114412")
-            os.makedirs(client_libs_dest, exist_ok=True)
-            
-            self.launcher.main_tab.log("Скачивание библиотек клиента...")
-            session = InsecureSession()
-            response = session.get(client_libs_url, stream=True, timeout=30)
-            
-            if response.status_code == 200:
-                dest_path = os.path.join(client_libs_dest, f"client-{minecraft_version}-20230612.114412-srg.jar")
-                with open(dest_path, 'wb') as f:
-                    for chunk in response.iter_content(chunk_size=8192):
-                        if chunk:
-                            f.write(chunk)
-                
-                self.launcher.main_tab.log("Библиотеки клиента скачаны успешно")
-            else:
-                self.launcher.main_tab.log(f"Не удалось скачать библиотеки клиента")
-            
-            self.launcher.main_tab.log("Прямая загрузка файлов завершена")
-            
+            self.launcher.main_tab.set_status("Прямая загрузка Forge через библиотеку...")
+            self.launcher.main_tab.log(f"Используем minecraft_launcher_lib для установки Forge {forge_version}")
+
+            # Пробуем установить с помощью встроенной функции
+            mclib.forge.install_forge_version(forge_version, self.launcher.MINECRAFT_DIR, callback=callback)
+
+            self.launcher.main_tab.log("Forge успешно установлен через minecraft_launcher_lib")
         except Exception as e:
-            self.launcher.main_tab.log(f"Ошибка при прямой загрузке: {str(e)}")
-            raise
+            self.launcher.main_tab.log(f"Критическая ошибка при установке Forge: {str(e)}")
+            # Предложите пользователю установить Forge вручную
+            self.launcher.root.after(0, lambda: messagebox.showerror(
+                "Ошибка установки",
+                f"Автоматическая установка Forge не удалась.\n\n"
+                f"Пожалуйста, установите Forge {forge_version} вручную:\n"
+                f"1. Скачайте установщик с https://files.minecraftforge.net\n"
+                f"2. Выберите 'Install client' и укажите папку '{self.launcher.MINECRAFT_DIR}'\n"
+                f"3. После этого попробуйте запустить игру снова."
+            ))
+            raise Exception(f"Не удалось установить Forge автоматически: {str(e)}")
     
     def find_java(self):
         java_home = os.environ.get('JAVA_HOME')
