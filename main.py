@@ -3,6 +3,9 @@ import ttkbootstrap as ttkb
 from launcher import MinecraftLauncher
 
 if __name__ == "__main__":
-    root = ttkb.Window(themename="darkly")
-    launcher = MinecraftLauncher(root)
-    root.mainloop()
+    try:
+        root = ttkb.Window(themename="darkly")
+        launcher = MinecraftLauncher(root)
+        root.mainloop()
+    except(KeyboardInterrupt):
+        print("Keyboard interrupt called, closing app...")
