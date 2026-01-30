@@ -387,6 +387,14 @@ class VersionManager:
     def _launch_minecraft_thread(self, minecraft_version, modloader, username, uuid, token):
         try:
             self.launcher.main_tab.set_status("Подготовка к запуску...")
+                        # НАСТРОЙКА SKIN LOADER ПЕРЕД ЗАПУСКОМ
+            self.launcher.main_tab.log("Настройка отображения скинов...")
+            
+            # 1. Проверяем и настраиваем Custom Skin Loader
+            self.launcher.setup_skin_loader(minecraft_version, modloader)
+            
+            # 2. Создаем локальную копию всех скинов для офлайн-доступа
+            self.launcher.sync_skins_for_local_use()
             
             launch_version = minecraft_version
             if modloader == "Forge":

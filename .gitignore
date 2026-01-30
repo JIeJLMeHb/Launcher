@@ -7,3 +7,5 @@ patchouli_data.json
 config
 hs_err_pid13984.log
 hs_err_pid16732.log
+CustomSkinLoader
+api_config.json

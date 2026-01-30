@@ -7,6 +7,8 @@ from datetime import datetime
 from utils import InsecureSession
 import ttkbootstrap as ttkb
 from ttkbootstrap.constants import *
+import threading
+
 
 class BaseTab:
     def __init__(self, parent, launcher):
@@ -379,7 +381,7 @@ class ModsTab(BaseTab):
                                             text="Текущий модпак: Не выбран",
                                             font=("Segoe UI", 9, "italic"))
         self.current_modpack_label.pack(pady=(10, 0))
-    
+
     def setup_mods_tree(self, parent):
         columns = ("Название", "Версия", "Размер", "Файл")
         self.mods_tree = ttk.Treeview(parent, columns=columns, show="headings", height=15)
@@ -970,3 +972,295 @@ class ModpacksTab(BaseTab):
             
         except Exception as e:
             self.launcher.main_tab.log(f"Ошибка при получении информации о модпаке: {str(e)}")
+
+class SyncTab(BaseTab):
+    def __init__(self, parent, launcher):
+        super().__init__(parent, launcher)
+        self.selected_skin_path = None
+        self.setup_tab()
+    
+    def setup_tab(self):
+        main_container = ttk.Frame(self.frame)
+        main_container.pack(fill="both", expand=True, padx=10, pady=10)
+        
+        # 1. БЛОК НАСТРОЕК СЕРВЕРА
+        server_frame = ttk.LabelFrame(main_container, text="Настройки сервера", padding=10)
+        server_frame.pack(fill="x", pady=(0, 10))
+        
+        # URL сервера
+        url_frame = ttk.Frame(server_frame)
+        url_frame.pack(fill="x", pady=5)
+        ttk.Label(url_frame, text="URL:").pack(side="left", padx=(0, 5))
+        self.server_url_entry = ttk.Entry(url_frame, width=40)
+        self.server_url_entry.insert(0, self.launcher.api_client.base_url)
+        self.server_url_entry.pack(side="left", fill="x", expand=True)
+        ttk.Button(url_frame, text="Сохранить", command=self.save_server_settings, width=10).pack(side="left", padx=5)
+        
+        # API ключ
+        api_frame = ttk.Frame(server_frame)
+        api_frame.pack(fill="x", pady=5)
+        ttk.Label(api_frame, text="API ключ:").pack(side="left", padx=(0, 5))
+        self.api_key_entry = ttk.Entry(api_frame, width=40, show="*")
+        self.api_key_entry.insert(0, self.launcher.api_client.api_key)
+        self.api_key_entry.pack(side="left", fill="x", expand=True)
+        
+        self.show_api_var = tk.BooleanVar()
+        ttk.Checkbutton(api_frame, text="Показать", variable=self.show_api_var,
+                       command=self.toggle_api_visibility).pack(side="left", padx=5)
+        
+        # Кнопки управления подключением
+        btn_frame = ttk.Frame(server_frame)
+        btn_frame.pack(fill="x", pady=10)
+        
+        ttk.Button(btn_frame, text="Проверить соединение", command=self.test_connection,
+                  bootstyle="info", width=20).pack(side="left", padx=2)
+        ttk.Button(btn_frame, text="Регистрация", command=self.register_dialog,
+                  bootstyle="primary", width=15).pack(side="left", padx=2)
+        ttk.Button(btn_frame, text="Войти", command=self.login_dialog,
+                  bootstyle="primary", width=15).pack(side="left", padx=2)
+        
+        # Статус авторизации
+        self.auth_status = ttk.Label(server_frame, text="Не авторизован", 
+                                    font=("Segoe UI", 9, "italic"))
+        self.auth_status.pack(anchor="w", pady=(5, 0))
+        
+        # 2. БЛОК УПРАВЛЕНИЯ СКИНАМИ
+        skins_frame = ttk.LabelFrame(main_container, text="Управление скинами", padding=10)
+        skins_frame.pack(fill="x", pady=(0, 10))
+        
+        # Выбор файла скина
+        select_frame = ttk.Frame(skins_frame)
+        select_frame.pack(fill="x", pady=5)
+        
+        ttk.Button(select_frame, text="📁 Выбрать файл скина", 
+                  command=self.select_skin_file,
+                  bootstyle="info", width=20).pack(side="left", padx=2)
+        
+        self.selected_file_label = ttk.Label(select_frame, text="Файл не выбран", 
+                                           font=("Segoe UI", 9))
+        self.selected_file_label.pack(side="left", padx=10)
+        
+        # Кнопки действий
+        action_frame = ttk.Frame(skins_frame)
+        action_frame.pack(fill="x", pady=5)
+        
+        ttk.Button(action_frame, text="🔼 Загрузить мой скин", 
+                  command=self.upload_my_skin,
+                  bootstyle="success", width=20).pack(side="left", padx=2)
+        
+        ttk.Button(action_frame, text="🔄 Синхронизировать все скины", 
+                  command=self.sync_all_skins,
+                  bootstyle="warning", width=22).pack(side="left", padx=2)
+        
+        # Текущий пользователь
+        user_frame = ttk.Frame(skins_frame)
+        user_frame.pack(fill="x", pady=(10, 0))
+        ttk.Label(user_frame, text="Текущий пользователь:").pack(side="left", padx=(0, 5))
+        self.current_user_label = ttk.Label(user_frame, text="Не указан", 
+                                          font=("Segoe UI", 9, "bold"))
+        self.current_user_label.pack(side="left")
+        
+        # 3. БЛОК ЛОГОВ
+        log_frame = ttk.LabelFrame(main_container, text="Лог синхронизации", padding=10)
+        log_frame.pack(fill="both", expand=True)
+        
+        self.log_text = tk.Text(log_frame, height=10, wrap="word",
+                              bg='#3c3c3c', fg='#ffffff',
+                              insertbackground='white',
+                              font=("Consolas", 9))
+        
+        scrollbar = ttk.Scrollbar(log_frame, command=self.log_text.yview)
+        self.log_text.config(yscrollcommand=scrollbar.set)
+        
+        self.log_text.pack(side="left", fill="both", expand=True, padx=(0, 5))
+        scrollbar.pack(side="right", fill="y")
+        
+        # Кнопка очистки лога
+        ttk.Button(log_frame, text="Очистить лог", 
+                  command=self.clear_log, width=10).pack(pady=(5, 0))
+        
+        # Обновляем статус пользователя
+        self.update_user_status()
+    
+    def toggle_api_visibility(self):
+        """Переключение видимости API ключа"""
+        if self.show_api_var.get():
+            self.api_key_entry.config(show="")
+        else:
+            self.api_key_entry.config(show="*")
+    
+    def save_server_settings(self):
+        """Сохранение настроек сервера"""
+        self.launcher.api_client.base_url = self.server_url_entry.get().strip()
+        self.launcher.api_client.api_key = self.api_key_entry.get().strip()
+        self.launcher.api_client.save_config()
+        self.log("Настройки сервера сохранены")
+    
+    def test_connection(self):
+        """Проверка соединения с сервером"""
+        self.log("Проверка соединения...")
+        if self.launcher.api_client.test_connection():
+            self.log("✅ Соединение установлено")
+        else:
+            self.log("❌ Не удалось подключиться к серверу")
+    
+    def register_dialog(self):
+        """Диалог регистрации нового пользователя"""
+        dialog = tk.Toplevel(self.launcher.root)
+        dialog.title("Регистрация")
+        dialog.geometry("300x200")
+        dialog.transient(self.launcher.root)
+        dialog.grab_set()
+        
+        # Центрирование
+        dialog.update_idletasks()
+        x = self.launcher.root.winfo_x() + (self.launcher.root.winfo_width() - dialog.winfo_width()) // 2
+        y = self.launcher.root.winfo_y() + (self.launcher.root.winfo_height() - dialog.winfo_height()) // 2
+        dialog.geometry(f"+{x}+{y}")
+        
+        ttk.Label(dialog, text="Имя пользователя:").pack(pady=(10, 0))
+        username_entry = ttk.Entry(dialog, width=30)
+        username_entry.pack(pady=5)
+        
+        ttk.Label(dialog, text="Пароль:").pack()
+        password_entry = ttk.Entry(dialog, width=30, show="*")
+        password_entry.pack(pady=5)
+        
+        def register():
+            username = username_entry.get().strip()
+            password = password_entry.get().strip()
+            
+            if not username or not password:
+                messagebox.showwarning("Внимание", "Заполните все поля")
+                return
+            
+            self.log(f"Регистрация пользователя {username}...")
+            
+            if self.launcher.api_client.register_user(username, password):
+                self.log("✅ Регистрация успешна!")
+                self.update_user_status()
+                dialog.destroy()
+            else:
+                self.log("❌ Ошибка регистрации")
+        
+        btn_frame = ttk.Frame(dialog)
+        btn_frame.pack(pady=10)
+        
+        ttk.Button(btn_frame, text="Зарегистрироваться", command=register).pack(side="left", padx=5)
+        ttk.Button(btn_frame, text="Отмена", command=dialog.destroy).pack(side="left", padx=5)
+    
+    def login_dialog(self):
+        """Диалог входа пользователя"""
+        dialog = tk.Toplevel(self.launcher.root)
+        dialog.title("Вход")
+        dialog.geometry("300x200")
+        dialog.transient(self.launcher.root)
+        dialog.grab_set()
+        
+        # Центрирование
+        dialog.update_idletasks()
+        x = self.launcher.root.winfo_x() + (self.launcher.root.winfo_width() - dialog.winfo_width()) // 2
+        y = self.launcher.root.winfo_y() + (self.launcher.root.winfo_height() - dialog.winfo_height()) // 2
+        dialog.geometry(f"+{x}+{y}")
+        
+        ttk.Label(dialog, text="Имя пользователя:").pack(pady=(10, 0))
+        username_entry = ttk.Entry(dialog, width=30)
+        username_entry.pack(pady=5)
+        
+        ttk.Label(dialog, text="Пароль:").pack()
+        password_entry = ttk.Entry(dialog, width=30, show="*")
+        password_entry.pack(pady=5)
+        
+        def login():
+            username = username_entry.get().strip()
+            password = password_entry.get().strip()
+            
+            if not username or not password:
+                messagebox.showwarning("Внимание", "Заполните все поля")
+                return
+            
+            self.log(f"Вход пользователя {username}...")
+            
+            if self.launcher.api_client.login_user(username, password):
+                self.log("✅ Вход выполнен!")
+                self.update_user_status()
+                dialog.destroy()
+            else:
+                self.log("❌ Ошибка входа")
+        
+        btn_frame = ttk.Frame(dialog)
+        btn_frame.pack(pady=10)
+        
+        ttk.Button(btn_frame, text="Войти", command=login).pack(side="left", padx=5)
+        ttk.Button(btn_frame, text="Отмена", command=dialog.destroy).pack(side="left", padx=5)
+    
+    def select_skin_file(self):
+        """Выбор файла скина"""
+        file_path = filedialog.askopenfilename(
+            title="Выберите файл скина",
+            filetypes=[("PNG файлы", "*.png"), ("Все файлы", "*.*")]
+        )
+        
+        if file_path:
+            self.selected_skin_path = file_path
+            filename = os.path.basename(file_path)
+            self.selected_file_label.config(text=f"Выбран: {filename}")
+            self.log(f"Выбран файл скина: {filename}")
+    
+    def upload_my_skin(self):
+        """Загрузка скина на сервер"""
+        if not hasattr(self, 'selected_skin_path') or not self.selected_skin_path:
+            messagebox.showwarning("Внимание", "Сначала выберите файл скина")
+            return
+        
+        username = self.launcher.main_tab.username_entry.get().strip()
+        if not username or username == "Player":
+            messagebox.showwarning("Внимание", "Укажите ваше имя пользователя в основной вкладке")
+            return
+        
+        confirm = messagebox.askyesno("Подтверждение",
+            f"Загрузить скин для пользователя '{username}'?\n\n"
+            f"Файл: {os.path.basename(self.selected_skin_path)}")
+        
+        if confirm:
+            self.log(f"Загрузка скина для {username}...")
+            threading.Thread(target=self._upload_skin_thread, daemon=True).start()
+    
+    def _upload_skin_thread(self):
+        """Поток загрузки скина"""
+        try:
+            if self.launcher.api_client.upload_skin(self.selected_skin_path):
+                self.log("✅ Скин успешно загружен на сервер!")
+            else:
+                self.log("❌ Не удалось загрузить скин")
+        except Exception as e:
+            self.log(f"❌ Ошибка при загрузке: {str(e)}")
+    
+    def sync_all_skins(self):
+        """Синхронизация всех скинов с сервера"""
+        self.log("Синхронизация скинов...")
+        threading.Thread(target=self.launcher.sync_skins, daemon=True).start()
+    
+    def update_user_status(self):
+        """Обновление информации о текущем пользователе"""
+        username = self.launcher.api_client.username
+        if username:
+            self.current_user_label.config(text=username)
+            self.auth_status.config(text=f"Авторизован как: {username}")
+            # Также обновляем поле в основной вкладке
+            self.launcher.main_tab.username_entry.delete(0, tk.END)
+            self.launcher.main_tab.username_entry.insert(0, username)
+        else:
+            self.current_user_label.config(text="Не указан")
+            self.auth_status.config(text="Не авторизован")
+    
+    def log(self, message):
+        """Добавление сообщения в лог"""
+        timestamp = datetime.now().strftime("%H:%M:%S")
+        self.log_text.insert(tk.END, f"[{timestamp}] {message}\n")
+        self.log_text.see(tk.END)
+        self.launcher.root.update_idletasks()
+    
+    def clear_log(self):
+        """Очистка лога"""
+        self.log_text.delete(1.0, tk.END)

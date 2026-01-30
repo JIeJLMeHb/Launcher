@@ -1,3 +1,8 @@
 minecraft-launcher-lib
 tk
 ttkbootstrap
+requests
+fastapi
+fastapi[standard]
+uvicorn
+python-multipart
