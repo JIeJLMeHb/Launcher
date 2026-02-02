@@ -15,6 +15,7 @@ class VersionManager:
             "Fabric": [],
             "Quilt": []
         }
+        self.is_loading_modloader_versions = False
     
     def log(self, message):
         """Логирование через лаунчер"""
@@ -62,7 +63,133 @@ class VersionManager:
         self.launcher.main_tab.set_status(f"Загружено {len(versions)} версий")
         
         if hasattr(self.launcher.main_tab, 'refresh_button'):
-            self.launcher.main_tab.refresh_button.config(state="normal")
+            self.launcher.root.after(0, lambda: self.launcher.main_tab.refresh_button.config(state="normal"))
+    
+    def on_version_changed(self, event=None):
+        """Обработчик изменения версии Minecraft"""
+        minecraft_version = self.launcher.main_tab.version_var.get()
+        modloader = self.launcher.main_tab.modloader_var.get()
+        
+        if minecraft_version and modloader != "Vanilla":
+            self.load_modloader_versions(minecraft_version, modloader)
+    
+    def on_modloader_changed(self, event=None):
+        """Обработчик изменения модлоадера"""
+        minecraft_version = self.launcher.main_tab.version_var.get()
+        modloader = self.launcher.main_tab.modloader_var.get()
+        
+        if minecraft_version and modloader != "Vanilla":
+            self.load_modloader_versions(minecraft_version, modloader)
+        else:
+            # Очищаем список версий модлоадера
+            self.launcher.root.after(0, self.update_modloader_version_combobox, [])
+    
+    def load_modloader_versions(self, minecraft_version, modloader):
+        """Загрузка списка версий модлоадера для выбранной версии Minecraft"""
+        if self.is_loading_modloader_versions:
+            return
+            
+        self.is_loading_modloader_versions = True
+        threading.Thread(target=self._load_modloader_versions_thread, 
+                        args=(minecraft_version, modloader), 
+                        daemon=True).start()
+    
+    def _load_modloader_versions_thread(self, minecraft_version, modloader):
+        """Поток загрузки версий модлоадера"""
+        try:
+            self.log(f"Загрузка версий {modloader} для Minecraft {minecraft_version}...")
+            versions = []
+            
+            if modloader == "Forge":
+                # Получаем список версий Forge
+                try:
+                    forge_versions = mclib.forge.list_forge_versions()
+                    # Фильтруем версии для выбранной версии Minecraft
+                    versions = [v for v in forge_versions if v.startswith(minecraft_version + "-")]
+                    
+                    if not versions:
+                        # Если не нашли версий с точным совпадением, ищем любые совместимые
+                        versions = [v for v in forge_versions if minecraft_version in v]
+                    
+                    # Сортируем версии (самые новые первыми)
+                    def forge_version_key(v):
+                        # Извлекаем номер сборки
+                        try:
+                            build_part = v.split('-')[-1]
+                            parts = build_part.split('.')
+                            return [int(p) for p in parts]
+                        except:
+                            return [0, 0, 0]
+                    
+                    versions.sort(key=forge_version_key, reverse=True)
+                    
+                except Exception as e:
+                    self.log(f"Ошибка загрузки версий Forge: {str(e)}")
+                    versions = []
+            
+            elif modloader == "Fabric":
+                # Для Fabric получаем список установщиков
+                try:
+                    fabric_versions = mclib.fabric.get_all_minecraft_versions()
+                    # Fabric поддерживает много версий, показываем только релевантные
+                    if minecraft_version in fabric_versions:
+                        versions = [f"Fabric для {minecraft_version}"]
+                    else:
+                        # Ищем ближайшую поддерживаемую версию
+                        for version in fabric_versions:
+                            if version.startswith(minecraft_version.split('.')[0]):
+                                versions = [f"Fabric для {version}"]
+                                break
+                except Exception as e:
+                    self.log(f"Ошибка загрузки версий Fabric: {str(e)}")
+                    versions = []
+            
+            elif modloader == "NeoForge":
+                # NeoForge API может отличаться, используем похожий подход
+                try:
+                    # Временное решение: генерируем примерные версии
+                    versions = [f"{minecraft_version}-latest", f"{minecraft_version}-recommended"]
+                except Exception as e:
+                    self.log(f"Ошибка загрузки версий NeoForge: {str(e)}")
+                    versions = []
+            
+            elif modloader == "Quilt":
+                # Для Quilt аналогично Fabric
+                try:
+                    # Временное решение
+                    versions = [f"Quilt для {minecraft_version}"]
+                except Exception as e:
+                    self.log(f"Ошибка загрузки версий Quilt: {str(e)}")
+                    versions = []
+            
+            # Обновляем интерфейс
+            self.launcher.root.after(0, self.update_modloader_version_combobox, versions)
+            
+            if versions:
+                self.log(f"Загружено {len(versions)} версий {modloader}")
+            else:
+                self.log(f"Версии {modloader} для {minecraft_version} не найдены")
+            
+        except Exception as e:
+            self.log(f"Ошибка при загрузке версий модлоадера: {str(e)}")
+            self.launcher.root.after(0, self.update_modloader_version_combobox, [])
+        finally:
+            self.is_loading_modloader_versions = False
+    
+    def update_modloader_version_combobox(self, versions):
+        """Обновление выпадающего списка версий модлоадера"""
+        if hasattr(self.launcher.main_tab, 'modloader_version_combobox'):
+            # Сохраняем текущее значение, если оно есть в новом списке
+            current_value = self.launcher.main_tab.modloader_version_var.get()
+            
+            self.launcher.main_tab.modloader_version_combobox['values'] = versions
+            
+            if versions:
+                # Выбираем первую версию из списка
+                self.launcher.main_tab.modloader_version_var.set(versions[0])
+            else:
+                # Если список пустой, устанавливаем пустое значение
+                self.launcher.main_tab.modloader_version_var.set("")
     
     def install_version(self):
         """Установка выбранной версии Minecraft"""
@@ -73,6 +200,12 @@ class VersionManager:
         if not minecraft_version:
             self.log("Ошибка: Выберите версию Minecraft!")
             messagebox.showwarning("Внимание", "Выберите версию Minecraft!")
+            return
+        
+        # Проверяем, выбран ли модлоадер и его версия
+        if modloader != "Vanilla" and not modloader_version:
+            self.log(f"Ошибка: Выберите версию {modloader}!")
+            messagebox.showwarning("Внимание", f"Выберите версию {modloader}!")
             return
         
         if hasattr(self.launcher.main_tab, 'install_button'):
@@ -146,30 +279,45 @@ class VersionManager:
             self.log(f"Установка {modloader} для Minecraft {minecraft_version}")
             
             if modloader == "Forge":
-                if modloader_version == "Автоматический выбор":
-                    for version in self.modloader_versions.get("Forge", []):
-                        if version.startswith(minecraft_version):
-                            modloader_version = version
-                            break
-                
+                # Установка Forge
                 if modloader_version:
                     mclib.forge.install_forge_version(modloader_version, 
                                                      self.launcher.MINECRAFT_DIR, 
                                                      callback=callback)
+                    self.log(f"Forge {modloader_version} успешно установлен!")
+                else:
+                    self.log(f"Ошибка: не указана версия Forge")
             
             elif modloader == "Fabric":
+                # Установка Fabric
                 if not self.is_version_installed(minecraft_version, "Fabric"):
-                    mclib.fabric.install_fabric(minecraft_version, 
+                    # Извлекаем версию Minecraft из строки
+                    fabric_mc_version = minecraft_version
+                    if " для " in modloader_version:
+                        fabric_mc_version = modloader_version.split(" для ")[1]
+                    
+                    mclib.fabric.install_fabric(fabric_mc_version, 
                                                self.launcher.MINECRAFT_DIR, 
                                                callback=callback)
-                    self.log(f"Fabric для Minecraft {minecraft_version} успешно установлен!")
+                    self.log(f"Fabric для Minecraft {fabric_mc_version} успешно установлен!")
                 else:
                     self.log(f"Fabric для Minecraft {minecraft_version} уже установлен")
+            
+            elif modloader == "NeoForge":
+                # NeoForge установка (похожа на Forge)
+                self.log(f"Установка NeoForge пока не реализована")
+                messagebox.showinfo("Внимание", "Установка NeoForge пока не реализована")
+            
+            elif modloader == "Quilt":
+                # Quilt установка
+                self.log(f"Установка Quilt пока не реализована")
+                messagebox.showinfo("Внимание", "Установка Quilt пока не реализована")
             
             self.log(f"{modloader} установка завершена")
             
         except Exception as e:
             self.log(f"Ошибка при установке {modloader}: {str(e)}")
+            raise
     
     def launch_minecraft(self):
         """Запуск Minecraft"""
@@ -180,6 +328,14 @@ class VersionManager:
             self.log("Ошибка: Выберите версию Minecraft!")
             messagebox.showwarning("Внимание", "Выберите версию Minecraft!")
             return
+        
+        # Проверяем, что версия модлоадера выбрана, если нужен модлоадер
+        if modloader != "Vanilla":
+            modloader_version = self.launcher.main_tab.modloader_version_var.get()
+            if not modloader_version:
+                self.log(f"Ошибка: Выберите версию {modloader}!")
+                messagebox.showwarning("Внимание", f"Выберите версию {modloader}!")
+                return
         
         # Подготавливаем скины для CSL
         self.launcher.prepare_local_skins_for_csl()

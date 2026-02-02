@@ -93,7 +93,7 @@ class MainTab(BaseTab):
         self.version_combobox = ttk.Combobox(version_frame, 
                                            textvariable=self.version_var, 
                                            state="readonly", 
-                                           width=20)  # Уменьшена ширина
+                                           width=20)
         self.version_combobox.pack(side="left", fill="x", expand=True, padx=(0, 5))
         self.version_combobox.bind("<<ComboboxSelected>>", self.on_minecraft_version_changed)
         
@@ -112,7 +112,7 @@ class MainTab(BaseTab):
                                               textvariable=self.modloader_var,
                                               values=["Vanilla", "Forge", "NeoForge", "Fabric", "Quilt"],
                                               state="readonly", 
-                                              width=12)  # Уменьшена ширина
+                                              width=12)
         self.modloader_combobox.pack(side="left", padx=(0, 5))
         self.modloader_combobox.bind("<<ComboboxSelected>>", self.on_modloader_changed)
         
@@ -121,27 +121,27 @@ class MainTab(BaseTab):
         self.modloader_version_combobox = ttk.Combobox(modloader_frame, 
                                                       textvariable=self.modloader_version_var,
                                                       state="disabled", 
-                                                      width=15)  # Уменьшена ширина
+                                                      width=15)
         self.modloader_version_combobox.pack(side="left", fill="x", expand=True)
     
     def setup_account_block_compact(self, parent):
         username_frame = ttk.Frame(parent)
         username_frame.pack(fill="x", pady=2)
         ttk.Label(username_frame, text="Имя:").pack(side="left", padx=(0, 5))
-        self.username_entry = ttk.Entry(username_frame, width=20)  # Уменьшена ширина
+        self.username_entry = ttk.Entry(username_frame, width=20)
         self.username_entry.insert(0, "Player")
         self.username_entry.pack(side="left", fill="x", expand=True)
         
         uuid_frame = ttk.Frame(parent)
         uuid_frame.pack(fill="x", pady=2)
         ttk.Label(uuid_frame, text="UUID:").pack(side="left", padx=(0, 5))
-        self.uuid_entry = ttk.Entry(uuid_frame, width=25)  # Уменьшена ширина
+        self.uuid_entry = ttk.Entry(uuid_frame, width=25)
         self.uuid_entry.pack(side="left", fill="x", expand=True)
         
         token_frame = ttk.Frame(parent)
         token_frame.pack(fill="x", pady=2)
         ttk.Label(token_frame, text="Token:").pack(side="left", padx=(0, 5))
-        self.token_entry = ttk.Entry(token_frame, width=25, show="*")  # Уменьшена ширина
+        self.token_entry = ttk.Entry(token_frame, width=25, show="*")
         self.token_entry.pack(side="left", fill="x", expand=True)
         
         self.show_token_var = tk.BooleanVar()
@@ -161,7 +161,7 @@ class MainTab(BaseTab):
         self.launcher.modpack_selector = ttk.Combobox(modpack_frame, 
                                         textvariable=self.launcher.modpack_selector_var,
                                         state="readonly", 
-                                        width=18)  # Уменьшена ширина
+                                        width=18)
         self.launcher.modpack_selector.pack(side="left", padx=(0, 5), fill="x", expand=True)
         self.launcher.modpack_selector.bind("<<ComboboxSelected>>", 
                                           self.launcher.on_modpack_selected_in_main_tab)
@@ -170,7 +170,7 @@ class MainTab(BaseTab):
                                         text="🚀 Запуск",
                                         command=self.launcher.quick_launch_modpack,
                                         bootstyle="warning",
-                                        padding=(10, 3))  # Уменьшен padding
+                                        padding=(10, 3))
         self.quick_launch_button.pack(side="left", padx=2)
         
         refresh_selector_button = ttk.Button(modpack_frame,
@@ -181,7 +181,7 @@ class MainTab(BaseTab):
         
         self.launcher.modpack_info_label = ttk.Label(parent, 
                                         text="Модпак не выбран",
-                                        font=("Segoe UI", 8))  # Уменьшен шрифт
+                                        font=("Segoe UI", 8))
         self.launcher.modpack_info_label.pack(anchor="w", pady=(5, 0))
     
     def setup_control_block_compact(self, parent):
@@ -192,14 +192,14 @@ class MainTab(BaseTab):
                                     text="Установить",
                                     command=self.launcher.version_manager.install_version,
                                     bootstyle="primary",
-                                    padding=(15, 8))  # Уменьшен padding
+                                    padding=(15, 8))
         self.install_button.pack(pady=5, fill="x")
         
         self.launch_button = ttk.Button(button_frame,
                              text="🚀 Запуск",
                              command=self.launcher.version_manager.launch_minecraft,
                              bootstyle="success",
-                             padding=(15, 8))  # Уменьшен padding
+                             padding=(15, 8))
         self.launch_button.pack(pady=5, fill="x")
     
     def setup_log_block_compact(self, parent):
@@ -207,12 +207,12 @@ class MainTab(BaseTab):
         log_block.pack(fill="both", expand=True)
         
         self.log_text = tk.Text(log_block, 
-                              height=10,  # Уменьшена высота
+                              height=10,
                               bg='#3c3c3c',
                               fg='#ffffff',
                               insertbackground='white',
                               wrap="word",
-                              font=("Consolas", 8))  # Уменьшен шрифт
+                              font=("Consolas", 8))
         
         scrollbar = ttk.Scrollbar(log_block, command=self.log_text.yview)
         self.log_text.config(yscrollcommand=scrollbar.set)
@@ -229,10 +229,10 @@ class MainTab(BaseTab):
                              textvariable=self.status_var, 
                              relief="sunken", 
                              anchor="w",
-                             padding=3,  # Уменьшен padding
+                             padding=3,
                              background='#3c3c3c',
                              foreground='#ffffff',
-                             font=("Segoe UI", 8))  # Уменьшен шрифт
+                             font=("Segoe UI", 8))
         status_bar.pack(fill="x")
     
     def toggle_token_visibility(self):
@@ -252,58 +252,27 @@ class MainTab(BaseTab):
         self.launcher.root.update_idletasks()
     
     def on_minecraft_version_changed(self, event=None):
-        selected_version = self.version_var.get()
-        modloader = self.modloader_var.get()
-        
-        if modloader != "Vanilla" and selected_version:
-            self.update_modloader_versions_for_minecraft(selected_version, modloader)
+        """Обработчик изменения версии Minecraft"""
+        # Вызываем обработчик в VersionManager
+        if hasattr(self.launcher.version_manager, 'on_version_changed'):
+            self.launcher.version_manager.on_version_changed(event)
     
     def on_modloader_changed(self, event=None):
+        """Обработчик изменения модлоадера"""
         modloader = self.modloader_var.get()
-        minecraft_version = self.version_var.get()
         
         if modloader == "Vanilla":
+            # Очищаем список версий модлоадера
             self.modloader_version_combobox['values'] = []
             self.modloader_version_var.set("")
             self.modloader_version_combobox.config(state="disabled")
         else:
+            # Активируем комбобокс и запускаем загрузку версий
             self.modloader_version_combobox.config(state="readonly")
-            if minecraft_version:
-                self.update_modloader_versions_for_minecraft(minecraft_version, modloader)
-    
-    def update_modloader_versions_for_minecraft(self, minecraft_version, modloader_type):
-        try:
-            versions = []
             
-            if modloader_type == "Forge":
-                for version in self.launcher.version_manager.modloader_versions.get("Forge", []):
-                    if version.startswith(minecraft_version):
-                        versions.append(version)
-            
-            elif modloader_type == "NeoForge":
-                for version in self.launcher.version_manager.modloader_versions.get("NeoForge", []):
-                    if minecraft_version in version:
-                        versions.append(version)
-            
-            elif modloader_type == "Fabric":
-                versions = self.launcher.version_manager.modloader_versions.get("Fabric", [])[:20]
-            
-            elif modloader_type == "Quilt":
-                versions = ["Последняя версия"]
-            
-            if not versions:
-                versions = ["Автоматический выбор"]
-            
-            self.modloader_version_combobox['values'] = versions
-            if versions:
-                self.modloader_version_combobox.set(versions[0])
-            
-            self.log(f"Найдено {len(versions)} версий {modloader_type} для Minecraft {minecraft_version}")
-            
-        except Exception as e:
-            self.log(f"Ошибка при фильтрации версий {modloader_type}: {str(e)}")
-            self.modloader_version_combobox['values'] = ["Автоматический выбор"]
-            self.modloader_version_combobox.set("Автоматический выбор")
+            # Вызываем обработчик в VersionManager
+            if hasattr(self.launcher.version_manager, 'on_modloader_changed'):
+                self.launcher.version_manager.on_modloader_changed(event)
 
 class ModsTab(BaseTab):
     def __init__(self, parent, launcher):
@@ -813,28 +782,21 @@ class ModpacksTab(BaseTab):
                     modloader_version_combobox.config(state="readonly")
                     versions = []
                     
-                    if selected_modloader == "Forge":
-                        for version in self.launcher.version_manager.modloader_versions.get("Forge", []):
-                            if version.startswith(selected_version):
-                                versions.append(version)
-                    
-                    elif selected_modloader == "NeoForge":
-                        for version in self.launcher.version_manager.modloader_versions.get("NeoForge", []):
-                            if selected_version in version:
-                                versions.append(version)
-                    
-                    elif selected_modloader == "Fabric":
-                        versions = self.launcher.version_manager.modloader_versions.get("Fabric", [])[:10]
-                    
-                    elif selected_modloader == "Quilt":
-                        versions = ["Последняя версия"]
-                    
-                    if not versions:
-                        versions = ["Автоматический выбор"]
-                    
-                    modloader_version_combobox['values'] = versions
-                    if versions:
-                        modloader_version_combobox.set(versions[0])
+                    # Используем VersionManager для загрузки версий
+                    if selected_version and selected_modloader != "Vanilla":
+                        # Показываем сообщение о загрузке
+                        modloader_version_combobox.set("Загрузка...")
+                        modloader_version_combobox.update()
+                        
+                        # Загружаем версии в отдельном потоке
+                        def load_versions():
+                            try:
+                                self.launcher.version_manager.load_modloader_versions(
+                                    selected_version, selected_modloader)
+                            except Exception as e:
+                                print(f"Ошибка загрузки версий: {e}")
+                        
+                        threading.Thread(target=load_versions, daemon=True).start()
             
             version_combobox.bind("<<ComboboxSelected>>", update_modloader_versions)
             modloader_combobox.bind("<<ComboboxSelected>>", update_modloader_versions)
