@@ -1023,6 +1023,21 @@ class SyncTab(BaseTab):
         self.auth_status = ttk.Label(server_frame, text="Не авторизован", 
                                     font=("Segoe UI", 9, "italic"))
         self.auth_status.pack(anchor="w", pady=(5, 0))
+
+        self.prepare_csl_btn = tk.Button(
+            self.frame,
+            text="Подготовить скины для CSL",
+            command=self.launcher.prepare_local_skins_for_csl
+        )
+        self.prepare_csl_btn.pack(pady=5)
+
+        self.test_csl_btn = tk.Button(
+            self.frame,
+            text="Тест конфига CSL",
+            command=self.launcher.test_csl_local_config
+        )
+        self.test_csl_btn.pack(pady=5)
+
         
         # 2. БЛОК УПРАВЛЕНИЯ СКИНАМИ
         skins_frame = ttk.LabelFrame(main_container, text="Управление скинами", padding=10)
@@ -1051,6 +1066,21 @@ class SyncTab(BaseTab):
         ttk.Button(action_frame, text="🔄 Синхронизировать все скины", 
                   command=self.sync_all_skins,
                   bootstyle="warning", width=22).pack(side="left", padx=2)
+        
+        csl_frame = ttk.Frame(skins_frame)
+        csl_frame.pack(fill="x", pady=5)
+        
+        ttk.Button(csl_frame, text="🛠️ Подготовить скины для CSL", 
+                  command=self.launcher.prepare_local_skins_for_csl,
+                  bootstyle="info", width=20).pack(side="left", padx=2)
+        
+        ttk.Button(csl_frame, text="🔧 Тест конфига CSL", 
+                  command=self.launcher.test_csl_local_config,
+                  bootstyle="info", width=15).pack(side="left", padx=2)
+        
+        ttk.Button(csl_frame, text="🔄 Пересоздать конфиг CSL", 
+                  command=self.launcher.recreate_csl_config,
+                  bootstyle="warning", width=18).pack(side="left", padx=2)
         
         # Текущий пользователь
         user_frame = ttk.Frame(skins_frame)
