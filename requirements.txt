@@ -6,3 +6,5 @@ fastapi
 fastapi[standard]
 uvicorn
 python-multipart
+beautifulsoup4
+lxml
