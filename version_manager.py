@@ -308,7 +308,7 @@ class VersionManager:
         # Если не нашли версий в новом API, пробуем старый (forge) для 1.20.1
         if not all_versions:
             try:
-                metadata_url = "https://maven.neoforged.net/releases/net/neoforged/forge/maven-metadata.xml"
+                metadata_url = "https://maven.neoforged.net/releases/net/neoforged/neoforge/maven-metadata.xml"
                 response = requests.get(metadata_url, timeout=15)
                 response.raise_for_status()
                 
@@ -335,7 +335,7 @@ class VersionManager:
     
     def _fetch_neoforge_versions_fallback(self, minecraft_version):
         """Fallback метод получения версий через HTML парсинг"""
-        url = "https://maven.neoforged.net/releases/net/neoforged/forge/"
+        url = "https://maven.neoforged.net/releases/net/neoforged/neoforge/"
         
         response = requests.get(url, timeout=10)
         response.raise_for_status()
