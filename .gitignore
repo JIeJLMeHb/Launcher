@@ -1,1 +1,4 @@
-Nothing should be ignored based on the provided file changes. The modified files (`tabs.py` and `version_manager.py`) are source code files that should not be added to `.gitignore`.
+```
+__pycache__/
+*.pyc
+```
