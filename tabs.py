@@ -651,7 +651,43 @@ class ModpacksTab(BaseTab):
         
         self.modpacks_tree.bind("<<TreeviewSelect>>", self.on_modpack_selected)
         
-        self.launcher.refresh_modpacks_list()
+    def refresh_modpacks_list(self):
+        """Обновление списка модпаков в таблице"""
+        try:
+            for item in self.modpacks_tree.get_children():
+                self.modpacks_tree.delete(item)
+            
+            if not os.path.exists(self.launcher.MODPACKS_DIR):
+                return
+            
+            for modpack_name in os.listdir(self.launcher.MODPACKS_DIR):
+                modpack_path = os.path.join(self.launcher.MODPACKS_DIR, modpack_name)
+                
+                if os.path.isdir(modpack_path):
+                    info_file = os.path.join(modpack_path, "modpack_info.json")
+                    
+                    if os.path.exists(info_file):
+                        with open(info_file, 'r', encoding='utf-8') as f:
+                            info = json.load(f)
+                        
+                        mods_dir = os.path.join(modpack_path, "mods")
+                        mod_count = 0
+                        if os.path.exists(mods_dir):
+                            mod_count = len([f for f in os.listdir(mods_dir) if f.endswith('.jar')])
+                        
+                        self.modpacks_tree.insert("", "end", values=(
+                            info.get('name', modpack_name),
+                            info.get('minecraft_version', 'Не указана'),
+                            info.get('modloader', 'Не указан'),
+                            mod_count,
+                            info.get('created', 'Не указана')
+                        ))
+                    else:
+                        self.modpacks_tree.insert("", "end", values=(
+                            modpack_name, "Не указана", "Не указан", 0, "Не указана"
+                        ))
+        except Exception as e:
+            self.launcher.main_tab.log(f"Ошибка при обновлении списка модпаков: {str(e)}")
     
     def setup_buttons(self, parent):
         button_frame = ttk.Frame(parent)
