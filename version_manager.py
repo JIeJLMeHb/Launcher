@@ -385,11 +385,45 @@ class VersionManager:
         """Получение списка установленных версий NeoForge"""
         try:
             installed = mclib.utils.get_installed_versions(self.launcher.MINECRAFT_DIR)
-            versions = [
-                ver['id'] for ver in installed
-                if ('neoforge' in ver['id'].lower() or 'neoformed' in ver['id'].lower())
-                and minecraft_version in ver['id']
-            ]
+            versions = []
+            
+            for ver in installed:
+                vid = ver['id']
+                vid_lower = vid.lower()
+                
+                # Прямое совпадение по имени
+                if ('neoforge' in vid_lower or 'neoformed' in vid_lower) and minecraft_version in vid:
+                    versions.append(vid)
+                    continue
+                
+                # Для версий 1.20.2+ проверяем содержимое JSON файла версии
+                version_dir = os.path.join(self.launcher.MINECRAFT_DIR, "versions", vid)
+                if os.path.exists(version_dir) and minecraft_version in vid:
+                    for fname in os.listdir(version_dir):
+                        if fname.endswith('.json'):
+                            json_path = os.path.join(version_dir, fname)
+                            try:
+                                with open(json_path, 'r', encoding='utf-8') as f:
+                                    version_json = json.load(f)
+                                
+                                inherits_from = version_json.get('inheritsFrom', '').lower()
+                                libraries = version_json.get('libraries', [])
+                                
+                                has_neoforge_lib = any(
+                                    'neoforged' in str(lib).lower() or 
+                                    'neoforge' in str(lib).lower()
+                                    for lib in libraries
+                                )
+                                
+                                if 'neoforge' in inherits_from or ('forge' in inherits_from and 'neoforged' in str(version_json).lower()):
+                                    versions.append(vid)
+                                    break
+                                if has_neoforge_lib:
+                                    versions.append(vid)
+                                    break
+                            except:
+                                pass
+            
             versions = sorted(set(versions), reverse=True)
             
             if versions:
@@ -485,7 +519,40 @@ class VersionManager:
                 for version in installed_versions:
                     vid = version['id'].lower()
                     if modloader.lower() == "neoforge":
-                        if ("neoforge" in vid or "neoformed" in vid) and minecraft_version in version['id']:
+                        # Проверяем различные варианты именования NeoForge
+                        # neoforge, neoformed, forge (для новых версий 1.20.2+)
+                        is_neoforge = ("neoforge" in vid or "neoformed" in vid)
+                        # Для версий 1.20.2+ NeoForge использует формат типа "1.20.4-neoforge-20.4.x"
+                        # или просто содержит версию Minecraft и номер сборки
+                        if not is_neoforge and minecraft_version in version['id']:
+                            # Проверяем, есть ли в директории версии признаки NeoForge
+                            version_id = version['id']
+                            version_dir = os.path.join(self.launcher.MINECRAFT_DIR, "versions", version_id)
+                            if os.path.exists(version_dir):
+                                # Ищем JSON файл версии и проверяем его содержимое
+                                for fname in os.listdir(version_dir):
+                                    if fname.endswith('.json'):
+                                        json_path = os.path.join(version_dir, fname)
+                                        try:
+                                            with open(json_path, 'r', encoding='utf-8') as f:
+                                                version_json = json.load(f)
+                                            # Проверяем наличие neoforge в inheritsFrom или libraries
+                                            inherits_from = version_json.get('inheritsFrom', '').lower()
+                                            libraries = version_json.get('libraries', [])
+                                            
+                                            has_neoforge_lib = any(
+                                                'neoforged' in str(lib).lower() or 
+                                                'neoforge' in str(lib).lower()
+                                                for lib in libraries
+                                            )
+                                            
+                                            if 'neoforge' in inherits_from or 'forge' in inherits_from and 'neoforged' in str(version_json).lower():
+                                                return True
+                                            if has_neoforge_lib:
+                                                return True
+                                        except:
+                                            pass
+                        if is_neoforge and minecraft_version in version['id']:
                             return True
                     else:
                         if modloader.lower() in vid and minecraft_version in version['id']:
