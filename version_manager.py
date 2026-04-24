@@ -542,10 +542,24 @@ class VersionManager:
         try:
             self.log(f"Начало установки NeoForge {neoforge_full_version}")
 
-            # Формируем URL для скачивания установщика
-            # Пример: https://maven.neoforged.net/releases/net/neoforged/forge/1.20.1-47.1.0/forge-1.20.1-47.1.0-installer.jar
-            installer_url = (f"https://maven.neoforged.net/releases/net/neoforged/neoforge/"
-                             f"{neoforge_full_version}/neoforge-{neoforge_full_version}-installer.jar")
+            # Создаем фейковый launcher_profiles.json, если его нет
+            # Это необходимо для работы официального установщика NeoForge
+            self._ensure_launcher_profiles_exists()
+
+            # Определяем тип версии и формируем правильный URL
+            # Для версий 1.20.1 используется формат: 1.20.1-47.x.x (артефакт forge)
+            # Для версий 1.20.2+ используется формат: 20.x.y, 21.x.y (артефакт neoforge)
+            if '-' in neoforge_full_version:
+                # Старый формат (1.20.1-47.x.x)
+                artifact_name = "forge"
+                installer_filename = f"forge-{neoforge_full_version}-installer.jar"
+            else:
+                # Новый формат (20.x.y, 21.x.y)
+                artifact_name = "neoforge"
+                installer_filename = f"neoforge-{neoforge_full_version}-installer.jar"
+
+            installer_url = (f"https://maven.neoforged.net/releases/net/neoforged/{artifact_name}/"
+                             f"{neoforge_full_version}/{installer_filename}")
 
             with tempfile.TemporaryDirectory() as temp_dir:
                 installer_path = os.path.join(temp_dir, f"neoforge-installer-{neoforge_full_version}.jar")
@@ -607,6 +621,41 @@ class VersionManager:
             self.log(f"Неизвестная ошибка при установке NeoForge: {str(e)}")
             messagebox.showerror("Ошибка", f"Ошибка установки NeoForge:\n{e}")
             raise
+
+    def _ensure_launcher_profiles_exists(self):
+        """Создает минимальный launcher_profiles.json, если он отсутствует"""
+        profiles_file = os.path.join(self.launcher.MINECRAFT_DIR, "launcher_profiles.json")
+        
+        if os.path.exists(profiles_file):
+            return
+        
+        self.log("Создание launcher_profiles.json для совместимости с установщиком NeoForge")
+        
+        # Создаем минимальный профиль
+        profile_data = {
+            "profiles": {
+                "Default": {
+                    "name": "Default",
+                    "type": "custom",
+                    "created": self._get_iso_timestamp(),
+                    "lastVersionId": "1.20.4"
+                }
+            },
+            "clientToken": "",
+            "selectedProfile": "Default"
+        }
+        
+        try:
+            with open(profiles_file, 'w', encoding='utf-8') as f:
+                json.dump(profile_data, f, indent=2)
+            self.log("launcher_profiles.json успешно создан")
+        except Exception as e:
+            self.log(f"Ошибка при создании launcher_profiles.json: {e}")
+    
+    def _get_iso_timestamp(self):
+        """Возвращает текущее время в ISO формате"""
+        from datetime import datetime
+        return datetime.utcnow().isoformat(timespec='milliseconds') + "Z"
 
     def launch_minecraft(self):
         """Запуск Minecraft"""
