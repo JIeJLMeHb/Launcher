@@ -243,40 +243,89 @@ class VersionManager:
         """Получение списка версий NeoForge из Maven репозитория"""
         self.log("Загружаем свежий список NeoForge с Maven...")
         
-        # Используем Maven Metadata API для получения списка версий
-        metadata_url = "https://maven.neoforged.net/releases/net/neoforged/forge/maven-metadata.xml"
+        # NeoForge использует два разных артефакта:
+        # 1. net.neoforged:forge - для версий 1.20.1 (старый формат: 1.20.1-47.x.x)
+        # 2. net.neoforged:neoforge - для версий 1.20.2+ (новый формат: 20.x.y, 21.x.y и т.д.)
         
+        all_versions = []
+        
+        # Пробуем получить версии из нового API (neoforge)
         try:
+            metadata_url = "https://maven.neoforged.net/releases/net/neoforged/neoforge/maven-metadata.xml"
             response = requests.get(metadata_url, timeout=15)
             response.raise_for_status()
             
-            # Парсим XML для получения всех версий
             root = ET.fromstring(response.content)
-            
-            # Находим все версии в metadata
             versions_elem = root.find('.//versions')
-            if versions_elem is None:
-                return self._fetch_neoforge_versions_fallback(minecraft_version)
             
-            all_versions = [v.text for v in versions_elem.findall('version')]
-            
-            # Фильтруем версии для нужной версии Minecraft
-            neo_versions = [
-                v for v in all_versions 
-                if v.startswith(minecraft_version + "-")
-            ]
-            
-            # Сортируем по версии сборки
-            neo_versions.sort(key=self._neoforge_version_key, reverse=True)
-            
-            return neo_versions
-            
-        except ET.ParseError:
-            self.log("Ошибка парсинга XML, используем fallback метод")
-            return self._fetch_neoforge_versions_fallback(minecraft_version)
+            if versions_elem is not None:
+                raw_versions = [v.text for v in versions_elem.findall('version')]
+                
+                # Конвертируем версии NeoForge в формат Minecraft
+                # Формат: 20.x.y-beta (для 1.20.x), 21.0.x (для 1.21), 21.1.x (для 1.21.1), и т.д.
+                for v in raw_versions:
+                    parts = v.split('.')
+                    if len(parts) >= 2:
+                        try:
+                            major = int(parts[0])
+                            
+                            if major == 20:
+                                # Версии 1.20.x (20.2.x -> 1.20.2, 20.4.x -> 1.20.4, и т.д.)
+                                minor = parts[1].split('-')[0]
+                                if minor.isdigit():
+                                    mc_ver = f'1.20.{minor}'
+                                else:
+                                    mc_ver = '1.20.1'
+                            elif major >= 21:
+                                # Версии 1.21+ 
+                                # 21.0.x -> 1.21, 21.1.x -> 1.21.1, 26.0.x -> 1.26, 26.1.x -> 1.26.1
+                                mc_major = major - 20
+                                minor = parts[1].split('-')[0]
+                                if minor.isdigit():
+                                    minor_int = int(minor)
+                                    if minor_int == 0:
+                                        mc_ver = f'1.{mc_major}'
+                                    else:
+                                        mc_ver = f'1.{mc_major}.{minor_int}'
+                                else:
+                                    mc_ver = f'1.{mc_major}'
+                            else:
+                                continue
+                            
+                            if mc_ver == minecraft_version:
+                                all_versions.append(v)
+                        except (ValueError, IndexError):
+                            continue
         except Exception as e:
-            self.log(f"Ошибка при загрузке метаданных NeoForge: {e}")
+            self.log(f"Ошибка при загрузке из нового API NeoForge: {e}")
+        
+        # Если не нашли версий в новом API, пробуем старый (forge) для 1.20.1
+        if not all_versions:
+            try:
+                metadata_url = "https://maven.neoforged.net/releases/net/neoforged/forge/maven-metadata.xml"
+                response = requests.get(metadata_url, timeout=15)
+                response.raise_for_status()
+                
+                root = ET.fromstring(response.content)
+                versions_elem = root.find('.//versions')
+                
+                if versions_elem is not None:
+                    raw_versions = [v.text for v in versions_elem.findall('version')]
+                    # Фильтруем версии для нужной версии Minecraft (формат: 1.20.1-47.x.x)
+                    all_versions = [
+                        v for v in raw_versions 
+                        if v.startswith(minecraft_version + "-")
+                    ]
+            except Exception as e:
+                self.log(f"Ошибка при загрузке из старого API NeoForge: {e}")
+        
+        if not all_versions:
             return self._fetch_neoforge_versions_fallback(minecraft_version)
+        
+        # Сортируем по версии сборки
+        all_versions.sort(key=self._neoforge_version_key, reverse=True)
+        
+        return all_versions
     
     def _fetch_neoforge_versions_fallback(self, minecraft_version):
         """Fallback метод получения версий через HTML парсинг"""
