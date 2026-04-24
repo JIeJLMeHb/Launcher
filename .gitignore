@@ -1,11 +1,1 @@
-.minecraft
-logs
-.venv
-__pycache__
-.log
-patchouli_data.json
-config
-hs_err_pid13984.log
-hs_err_pid16732.log
-CustomSkinLoader
-api_config.json
+Nothing needs to be added to .gitignore since only a Python source file (`version_manager.py`) was modified and no build artifacts, dependencies, or temporary files were detected in the changes.

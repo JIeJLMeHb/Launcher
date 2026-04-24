@@ -5,6 +5,8 @@ import threading
 import tempfile
 import json
 import socket
+import re
+import xml.etree.ElementTree as ET
 import requests
 import minecraft_launcher_lib as mclib
 from tkinter import messagebox
@@ -192,78 +194,156 @@ class VersionManager:
     def _get_neoforge_versions(self, minecraft_version):
         """Получение списка версий NeoForge для указанной версии Minecraft (с кэшированием)"""
         versions = []
-        # Сначала пробуем загрузить из кэша
+        
+        # Проверяем кэш сначала
+        cached_versions = self._load_neoforge_from_cache(minecraft_version)
+        if cached_versions:
+            versions = cached_versions
+        
+        # Если есть интернет, обновляем кэш
+        if self.is_connected():
+            try:
+                neo_versions = self._fetch_neoforge_versions_online(minecraft_version)
+                if neo_versions:
+                    self._save_neoforge_to_cache(minecraft_version, neo_versions)
+                    versions = neo_versions
+                    self.log(f"Загружено {len(versions)} версий NeoForge из сети")
+                elif not cached_versions:
+                    self.log("Не удалось загрузить версии NeoForge из сети")
+            except Exception as e:
+                self.log(f"Ошибка загрузки NeoForge из сети: {e}")
+                if not cached_versions:
+                    versions = []
+        else:
+            self.log("Нет интернета, используем кэшированные версии NeoForge")
+        
+        # Если всё ещё пусто, пробуем найти установленные версии
+        if not versions:
+            versions = self._get_installed_neoforge_versions(minecraft_version)
+        
+        return versions
+    
+    def _load_neoforge_from_cache(self, minecraft_version):
+        """Загрузка версий NeoForge из кэша"""
+        if not os.path.exists(self.neoforge_cache_file):
+            return []
+        
+        try:
+            with open(self.neoforge_cache_file, 'r', encoding='utf-8') as f:
+                cache = json.load(f)
+            versions = cache.get(minecraft_version, [])
+            if versions:
+                self.log(f"Загружены версии NeoForge для {minecraft_version} из кэша")
+            return versions
+        except Exception as e:
+            self.log(f"Ошибка чтения кэша NeoForge: {e}")
+            return []
+    
+    def _fetch_neoforge_versions_online(self, minecraft_version):
+        """Получение списка версий NeoForge из Maven репозитория"""
+        self.log("Загружаем свежий список NeoForge с Maven...")
+        
+        # Используем Maven Metadata API для получения списка версий
+        metadata_url = "https://maven.neoforged.net/releases/net/neoforged/forge/maven-metadata.xml"
+        
+        try:
+            response = requests.get(metadata_url, timeout=15)
+            response.raise_for_status()
+            
+            # Парсим XML для получения всех версий
+            root = ET.fromstring(response.content)
+            
+            # Находим все версии в metadata
+            versions_elem = root.find('.//versions')
+            if versions_elem is None:
+                return self._fetch_neoforge_versions_fallback(minecraft_version)
+            
+            all_versions = [v.text for v in versions_elem.findall('version')]
+            
+            # Фильтруем версии для нужной версии Minecraft
+            neo_versions = [
+                v for v in all_versions 
+                if v.startswith(minecraft_version + "-")
+            ]
+            
+            # Сортируем по версии сборки
+            neo_versions.sort(key=self._neoforge_version_key, reverse=True)
+            
+            return neo_versions
+            
+        except ET.ParseError:
+            self.log("Ошибка парсинга XML, используем fallback метод")
+            return self._fetch_neoforge_versions_fallback(minecraft_version)
+        except Exception as e:
+            self.log(f"Ошибка при загрузке метаданных NeoForge: {e}")
+            return self._fetch_neoforge_versions_fallback(minecraft_version)
+    
+    def _fetch_neoforge_versions_fallback(self, minecraft_version):
+        """Fallback метод получения версий через HTML парсинг"""
+        url = "https://maven.neoforged.net/releases/net/neoforged/forge/"
+        
+        response = requests.get(url, timeout=10)
+        response.raise_for_status()
+        
+        pattern = re.compile(r'<a href="([^"]+)/">')
+        all_links = pattern.findall(response.text)
+        
+        neo_versions = [
+            link for link in all_links 
+            if link.startswith(minecraft_version + "-")
+        ]
+        
+        neo_versions.sort(key=self._neoforge_version_key, reverse=True)
+        return neo_versions
+    
+    def _neoforge_version_key(self, version):
+        """Ключ сортировки для версий NeoForge"""
+        try:
+            # Формат: 1.20.1-47.1.0
+            parts = version.split('-')
+            if len(parts) >= 2:
+                build = parts[-1]
+                return [int(x) for x in build.split('.')]
+        except (ValueError, IndexError):
+            pass
+        return [0, 0, 0]
+    
+    def _save_neoforge_to_cache(self, minecraft_version, versions):
+        """Сохранение версий NeoForge в кэш"""
+        cache = {}
         if os.path.exists(self.neoforge_cache_file):
             try:
                 with open(self.neoforge_cache_file, 'r', encoding='utf-8') as f:
                     cache = json.load(f)
-                if minecraft_version in cache:
-                    versions = cache[minecraft_version]
-                    self.log(f"Загружены версии NeoForge для {minecraft_version} из кэша")
-            except Exception as e:
-                self.log(f"Ошибка чтения кэша NeoForge: {e}")
-
-        # Если есть интернет, обновляем кэш (даже если уже есть, чтобы получить новые версии)
-        if self.is_connected():
-            try:
-                self.log("Загружаем свежий список NeoForge с Maven...")
-                # Используем Maven metadata для получения списка всех версий neoforge
-                # Формат: https://maven.neoforged.net/releases/net/neoforged/forge/maven-metadata.xml
-                # Но проще получить JSON через API (если есть) или спарсить.
-                # В данном примере используем простой подход: получаем HTML страницы со списком версий
-                # и извлекаем те, что соответствуют minecraft_version.
-                # Более надёжно: использовать Maven Metadata API.
-                url = "https://maven.neoforged.net/releases/net/neoforged/forge/"
-                response = requests.get(url, timeout=10)
-                response.raise_for_status()
-                # Парсим HTML (грубо)
-                import re
-                # Ищем ссылки вида <a href="1.20.1-47.1.0/"> или подобные
-                pattern = re.compile(r'<a href="([^"]+)/">')
-                all_links = pattern.findall(response.text)
-                # Фильтруем только те, которые начинаются с minecraft_version + "-"
-                neo_versions = [link for link in all_links if link.startswith(minecraft_version + "-")]
-                # Сортируем
-                def ver_key(v):
-                    try:
-                        build = v.split('-')[-1]
-                        return [int(x) for x in build.split('.')]
-                    except:
-                        return [0,0,0]
-                neo_versions.sort(key=ver_key, reverse=True)
-
-                # Обновляем кэш
+            except Exception:
                 cache = {}
-                if os.path.exists(self.neoforge_cache_file):
-                    with open(self.neoforge_cache_file, 'r') as f:
-                        cache = json.load(f)
-                cache[minecraft_version] = neo_versions
-                with open(self.neoforge_cache_file, 'w') as f:
-                    json.dump(cache, f, indent=2)
-
-                versions = neo_versions
-                self.log(f"Загружено {len(versions)} версий NeoForge из сети")
-            except Exception as e:
-                self.log(f"Ошибка загрузки NeoForge из сети: {e}")
-                # Если не удалось загрузить из сети, оставляем то, что было из кэша
-        else:
-            self.log("Нет интернета, используем кэшированные версии NeoForge")
-
-        # Если кэш пуст и нет интернета, попробуем показать уже установленные версии NeoForge
-        if not versions:
-            try:
-                installed = mclib.utils.get_installed_versions(self.launcher.MINECRAFT_DIR)
-                for ver in installed:
-                    vid = ver['id'].lower()
-                    if ('neoforge' in vid or 'neoformed' in vid) and minecraft_version in vid:
-                        # Извлекаем полную версию (например, "1.20.1-47.1.0")
-                        versions.append(ver['id'])
-                versions = sorted(set(versions), reverse=True)
-                self.log(f"Найдены установленные версии NeoForge: {versions}")
-            except Exception as e:
-                self.log(f"Ошибка при поиске установленных NeoForge: {e}")
-
-        return versions
+        
+        cache[minecraft_version] = versions
+        
+        try:
+            with open(self.neoforge_cache_file, 'w', encoding='utf-8') as f:
+                json.dump(cache, f, indent=2, ensure_ascii=False)
+        except Exception as e:
+            self.log(f"Ошибка записи кэша NeoForge: {e}")
+    
+    def _get_installed_neoforge_versions(self, minecraft_version):
+        """Получение списка установленных версий NeoForge"""
+        try:
+            installed = mclib.utils.get_installed_versions(self.launcher.MINECRAFT_DIR)
+            versions = [
+                ver['id'] for ver in installed
+                if ('neoforge' in ver['id'].lower() or 'neoformed' in ver['id'].lower())
+                and minecraft_version in ver['id']
+            ]
+            versions = sorted(set(versions), reverse=True)
+            
+            if versions:
+                self.log(f"Найдены установленные версии NeoForge: {len(versions)}")
+            
+            return versions
+        except Exception as e:
+            self.log(f"Ошибка при поиске установленных NeoForge: {e}")
+            return []
 
     def update_modloader_version_combobox(self, versions):
         """Обновление выпадающего списка версий модлоадера"""
