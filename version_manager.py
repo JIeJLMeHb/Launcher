@@ -308,7 +308,7 @@ class VersionManager:
         # Если не нашли версий в новом API, пробуем старый (forge) для 1.20.1
         if not all_versions:
             try:
-                metadata_url = "https://maven.neoforged.net/releases/net/neoforged/forge/maven-metadata.xml"
+                metadata_url = "https://maven.neoforged.net/releases/net/neoforged/neoforge/maven-metadata.xml"
                 response = requests.get(metadata_url, timeout=15)
                 response.raise_for_status()
                 
@@ -335,7 +335,7 @@ class VersionManager:
     
     def _fetch_neoforge_versions_fallback(self, minecraft_version):
         """Fallback метод получения версий через HTML парсинг"""
-        url = "https://maven.neoforged.net/releases/net/neoforged/forge/"
+        url = "https://maven.neoforged.net/releases/net/neoforged/neoforge/"
         
         response = requests.get(url, timeout=10)
         response.raise_for_status()
@@ -544,8 +544,8 @@ class VersionManager:
 
             # Формируем URL для скачивания установщика
             # Пример: https://maven.neoforged.net/releases/net/neoforged/forge/1.20.1-47.1.0/forge-1.20.1-47.1.0-installer.jar
-            installer_url = (f"https://maven.neoforged.net/releases/net/neoforged/forge/"
-                             f"{neoforge_full_version}/forge-{neoforge_full_version}-installer.jar")
+            installer_url = (f"https://maven.neoforged.net/releases/net/neoforged/neoforge/"
+                             f"{neoforge_full_version}/neoforge-{neoforge_full_version}-installer.jar")
 
             with tempfile.TemporaryDirectory() as temp_dir:
                 installer_path = os.path.join(temp_dir, f"neoforge-installer-{neoforge_full_version}.jar")
