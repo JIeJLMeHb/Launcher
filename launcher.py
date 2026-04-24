@@ -1,18 +1,19 @@
 from tabs import MainTab, ModsTab, ModpacksTab, SyncTab
+from curseforge_handler import CurseForgeHandler
 from version_manager import VersionManager
-from api_client import APIClient
-from skin_manager import SkinManager
 import minecraft_launcher_lib as mclib
+from skin_manager import SkinManager
 from tkinter import ttk, messagebox
+from api_client import APIClient
 from PIL import Image, ImageTk
 from datetime import datetime
 import tkinter as tk
 import threading
+import requests
+import hashlib
 import shutil
 import json
 import os
-import requests
-import hashlib
 
 class MinecraftLauncher:
     def __init__(self, root):
@@ -25,7 +26,7 @@ class MinecraftLauncher:
         y = (screen_height // 2) - (window_height // 2)
 
         self.root = root
-        self.root.title("Minecraft Launcher")
+        self.root.title("Minecraft Launcher 1.0.1")
         self.root.geometry(f'{window_width}x{window_height}+{x}+{y}')
         self.root.configure(bg='#2b2b2b')
 
@@ -43,8 +44,8 @@ class MinecraftLauncher:
             os.makedirs(directory, exist_ok=True)
         
         self.current_modpack = None
-        
         # Инициализация компонентов
+        self.curseforge_handler = CurseForgeHandler(self)
         self.api_client = APIClient(self)
         self.version_manager = VersionManager(self)
         self.skin_manager = SkinManager(self)

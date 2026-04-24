@@ -625,6 +625,66 @@ class ModpacksTab(BaseTab):
         super().__init__(parent, launcher)
         self.setup_tab()
     
+    def import_curseforge_modpack(self):
+        """Dialog for importing CurseForge modpack"""
+        try:
+            file_path = filedialog.askopenfilename(
+                title="Select CurseForge Modpack ZIP",
+                filetypes=[("ZIP files", "*.zip"), ("All files", "*.*")]
+            )
+            
+            if file_path:
+                # Optional: ask for custom name
+                dialog = tk.Toplevel(self.launcher.root)
+                dialog.title("Import CurseForge Modpack")
+                dialog.geometry("350x150")
+                dialog.transient(self.launcher.root)
+                dialog.grab_set()
+                
+                dialog.update_idletasks()
+                x = self.launcher.root.winfo_x() + (self.launcher.root.winfo_width() - dialog.winfo_width()) // 2
+                y = self.launcher.root.winfo_y() + (self.launcher.root.winfo_height() - dialog.winfo_height()) // 2
+                dialog.geometry(f"+{x}+{y}")
+                
+                ttk.Label(dialog, text="Modpack Name (optional):").pack(pady=(10, 0))
+                name_entry = ttk.Entry(dialog, width=40)
+                name_entry.pack(pady=5, padx=20)
+                
+                def import_pack():
+                    custom_name = name_entry.get().strip() or None
+                    dialog.destroy()
+                    
+                    self.launcher.main_tab.log("🔄 Importing CurseForge modpack...")
+                    threading.Thread(
+                        target=self._import_curseforge_thread,
+                        args=(file_path, custom_name),
+                        daemon=True
+                    ).start()
+                
+                btn_frame = ttk.Frame(dialog)
+                btn_frame.pack(pady=10)
+                
+                ttk.Button(btn_frame, text="Import", command=import_pack).pack(side="left", padx=5)
+                ttk.Button(btn_frame, text="Cancel", command=dialog.destroy).pack(side="left", padx=5)
+        
+        except Exception as e:
+            self.launcher.main_tab.log(f"❌ Error: {str(e)}")
+
+    def _import_curseforge_thread(self, zip_path: str, modpack_name: str = None):
+        """Background thread for importing"""
+        try:
+            success = self.launcher.curseforge_handler.import_curseforge_zip(zip_path, modpack_name)
+            
+            if success:
+                self.launcher.main_tab.log("✅ CurseForge modpack imported successfully!")
+                messagebox.showinfo("Success", "Modpack imported! Mods are downloading in background.")
+            else:
+                self.launcher.main_tab.log("❌ Failed to import modpack")
+                messagebox.showerror("Error", "Failed to import CurseForge modpack")
+        
+        except Exception as e:
+            self.launcher.main_tab.log(f"❌ Import error: {str(e)}")
+
     def setup_tab(self):
         main_container = ttk.Frame(self.frame)
         main_container.pack(fill="both", expand=True, padx=10, pady=10)
@@ -664,6 +724,13 @@ class ModpacksTab(BaseTab):
                                     padding=(15, 5))
         self.create_modpack_button.pack(side="left", padx=5)
         
+        self.import_curseforge_button = ttk.Button(button_frame,
+                                    text="📥 Импорт CurseForge",
+                                    command=self.import_curseforge_modpack,
+                                    bootstyle="info",
+                                    padding=(15, 5))
+        self.import_curseforge_button.pack(side="left", padx=5)
+
         self.delete_modpack_button = ttk.Button(button_frame,
                                     text="🗑️ Удалить модпак",
                                     command=self.delete_modpack,
