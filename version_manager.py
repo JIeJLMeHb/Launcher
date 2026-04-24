@@ -246,6 +246,15 @@ class VersionManager:
         # NeoForge использует два разных артефакта:
         # 1. net.neoforged:forge - для версий 1.20.1 (старый формат: 1.20.1-47.x.x)
         # 2. net.neoforged:neoforge - для версий 1.20.2+ (новый формат: 20.x.y, 21.x.y и т.д.)
+        # 
+        # Формат версий NeoForge: MAJOR.MINOR.PATCH[-LABEL]
+        # где MAJOR = версия Minecraft без "1." (20 = 1.20.x, 21 = 1.21.x, и т.д.)
+        # MINOR = минорная версия Minecraft (0 = x.0, 1 = x.1, и т.д.)
+        # Примеры:
+        #   20.4.x-beta → Minecraft 1.20.4
+        #   21.0.x → Minecraft 1.21
+        #   21.1.x → Minecraft 1.21.1
+        #   21.2.x → Minecraft 1.21.2
         
         all_versions = []
         
@@ -262,35 +271,32 @@ class VersionManager:
                 raw_versions = [v.text for v in versions_elem.findall('version')]
                 
                 # Конвертируем версии NeoForge в формат Minecraft
-                # Формат: 20.x.y-beta (для 1.20.x), 21.0.x (для 1.21), 21.1.x (для 1.21.1), и т.д.
                 for v in raw_versions:
                     parts = v.split('.')
                     if len(parts) >= 2:
                         try:
                             major = int(parts[0])
                             
-                            if major == 20:
-                                # Версии 1.20.x (20.2.x -> 1.20.2, 20.4.x -> 1.20.4, и т.д.)
-                                minor = parts[1].split('-')[0]
-                                if minor.isdigit():
-                                    mc_ver = f'1.20.{minor}'
-                                else:
-                                    mc_ver = '1.20.1'
-                            elif major >= 21:
-                                # Версии 1.21+ 
-                                # 21.0.x -> 1.21, 21.1.x -> 1.21.1, 26.0.x -> 1.26, 26.1.x -> 1.26.1
-                                mc_major = major - 20
-                                minor = parts[1].split('-')[0]
-                                if minor.isdigit():
-                                    minor_int = int(minor)
-                                    if minor_int == 0:
-                                        mc_ver = f'1.{mc_major}'
-                                    else:
-                                        mc_ver = f'1.{mc_major}.{minor_int}'
-                                else:
-                                    mc_ver = f'1.{mc_major}'
-                            else:
+                            # Пропускаем старые версии (до 20)
+                            if major < 20:
                                 continue
+                            
+                            # Извлекаем минорную версию (второй компонент, убирая суффиксы типа -beta)
+                            minor_raw = parts[1].split('-')[0]
+                            
+                            if not minor_raw.isdigit():
+                                continue
+                            
+                            minor = int(minor_raw)
+                            
+                            # Формируем версию Minecraft
+                            # major=20, minor=4 → 1.20.4
+                            # major=21, minor=0 → 1.21
+                            # major=21, minor=1 → 1.21.1
+                            if minor == 0:
+                                mc_ver = f'1.{major}'
+                            else:
+                                mc_ver = f'1.{major}.{minor}'
                             
                             if mc_ver == minecraft_version:
                                 all_versions.append(v)
